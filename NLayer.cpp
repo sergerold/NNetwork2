@@ -8,29 +8,48 @@
 
 NLayer::NLayer(size_t layerSz, size_t numIncomingWeightsToEachNeuron)
 {
-    mLayerBiases.resize(1, layerSz);
-    mLayerOutputs.resize(1, layerSz);
-    mLayerWeights.resize(numIncomingWeightsToEachNeuron, layerSz);
+    mLayerBiases.resize(1, Eigen::Index (layerSz) );
+    mLayerOutputs.resize(1, Eigen::Index (layerSz) );
+    mLayerWeights.resize(Eigen::Index (numIncomingWeightsToEachNeuron), Eigen::Index (layerSz) );
 }
 
-SingleRowT& NLayer::getBiases()
+const SingleRowT& NLayer::getBiases()
 {
     return mLayerBiases;
 }
 
-const SingleRowT& NLayer::getOutputs()
+void NLayer::setBiases(const SingleRowT& biases)
+{
+    if(biases.size() != mLayerBiases.size())
+    {
+        throw std::logic_error("Biases different size to that specified in Layer");
+    }
+    mLayerBiases = biases;
+}
+
+
+const SingleRowT& NLayer::getOutputs() const
 {
     return mLayerOutputs;
 }
 
-Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic>& NLayer::getWeights()
+const LayerWeightsT& NLayer::getWeights()
 {
     return mLayerWeights;
 }
 
+void NLayer::setWeights(const LayerWeightsT& weights)
+{
+    if(weights.rows() != mLayerWeights.rows() || weights.cols() != mLayerWeights.cols())
+    {
+        throw std::logic_error("Weights different size to that specified in Layer");
+    }
+    mLayerWeights = weights;
+}
+
 Eigen::Ref<Eigen::VectorXd> NLayer::getWeightsForNeuron(size_t neuronPos)
 {
-    return mLayerWeights.col(neuronPos);
+    return mLayerWeights.col(Eigen::Index (neuronPos) );
 }
 
 size_t NLayer::size()
@@ -40,12 +59,15 @@ size_t NLayer::size()
 
 void NLayer::resizeLayer(size_t newLayerSz)
 {
-    mLayerBiases.resize(1, newLayerSz);
-    mLayerOutputs.resize(1, newLayerSz);
-    mLayerWeights.resize(mLayerWeights.rows(), newLayerSz);
+    mLayerBiases.resize(1, Eigen::Index(newLayerSz) );
+    mLayerOutputs.resize(1, Eigen::Index(newLayerSz) );
+    mLayerWeights.resize(mLayerWeights.rows(), Eigen::Index(newLayerSz) );
 }
 
 void NLayer::resizeNumWeightsPerNeuron(size_t newWeightsSz)
 {
-    mLayerWeights.resize(newWeightsSz, mLayerWeights.cols());
+    mLayerWeights.resize(Eigen::Index (newWeightsSz), mLayerWeights.cols());
 }
+
+
+

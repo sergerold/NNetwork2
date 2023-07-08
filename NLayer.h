@@ -8,16 +8,15 @@
 #include "Eigen/Dense"
 
 using NetNumT = double;
+using LayerWeightsT =  Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic>;
 using SingleRowT = Eigen::Matrix<NetNumT, 1, Eigen::Dynamic>;
-//using SingleRowT = Eigen::Vector<NetNumT , Eigen::Dynamic>;
-
 
 class NLayer
 {
     private:
         SingleRowT mLayerBiases;
         SingleRowT mLayerOutputs;
-        Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic> mLayerWeights;
+        LayerWeightsT mLayerWeights;
         
         void resizeLayer(size_t newLayerSz);
         void resizeNumWeightsPerNeuron(size_t newWeightsSz);
@@ -25,10 +24,13 @@ class NLayer
     public:
         explicit NLayer(size_t layerSz, size_t numIncomingWeightsToEachNeuron);
 
-        SingleRowT& getBiases();
-        const SingleRowT& getOutputs();
+        const SingleRowT& getBiases();
+        void setBiases(const SingleRowT& biases);
 
-        Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic>& getWeights();
+        const SingleRowT& getOutputs() const;
+
+        const LayerWeightsT& getWeights();
+        void setWeights(const LayerWeightsT& weights);
         Eigen::Ref<Eigen::VectorXd> getWeightsForNeuron(size_t neuronPos);
 
         size_t size();

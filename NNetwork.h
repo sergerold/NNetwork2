@@ -13,25 +13,36 @@
 #include <set>
 #include "Eigen/Dense"
 
-using LabelT = std::string;
-using LabelList = std::set<LabelT>;
+using ClassT = std::string;
+using ClassList = std::set<ClassT>;
 using InputList = SingleRowT;
+
+enum class ActFunc
+{
+        SIGMOID,
+        RELU,
+        SOFTMAX
+};
+
+using ActFuncList = std::vector<ActFunc>;
 
 class NNetwork
 {
     private:
         std::vector<NLayer> mNLayer;
-        std::map<LabelT, size_t> mOutputLabels;
+        std::map<ClassT, size_t> mOutputClasses; // ordered list of classes
 
         const size_t INPUT_LAYER_OFFSET = 1;
 
+        void applyActFuncToLayer(SingleRowT& netInputs, ActFunc actFunc);
+
     public:
-        NNetwork(const SingleRowT& inputs, const LabelList& labels);
+        NNetwork(const SingleRowT& inputs, const ClassList& labels);
 
         NLayer& layer(size_t layer);
         NLayer& outputLayer();
         size_t numLayers();
-        NetNumT getOutput(const LabelT&);
+        NetNumT getOutput(const ClassT&);
 
         const SingleRowT& getInputs();
         void setInputs(const SingleRowT& inputs);
@@ -39,7 +50,9 @@ class NNetwork
         bool addLayer(size_t layerSz, size_t insertPos);
         bool changeLayerSz(size_t layer, size_t newLayerSz);
 
-        void feedforward(std::function<NetNumT (NetNumT)>& actFunc);
+        const std::map<ClassT, size_t>& labels();
+
+        void feedforward(ActFuncList actFuncs);
 };
 
 #endif //NNETWORK2_NNETWORK_H
