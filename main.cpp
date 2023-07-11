@@ -3,53 +3,42 @@
 
 #include "NNetwork.h"
 #include "Training.h"
+#include "Data.h"
 #include "Debug.h"
 
 
 int main()
 {
-    Eigen::Matrix<NetNumT, 1, Eigen::Dynamic> inputs;
-    inputs.resize(1, 2);
-    inputs << 0.05, 0.1;
-    ClassList classes {"O1", "O2"};
-    NNetwork network(inputs, classes);
-    network.addLayer(2, 0);
+    TrainingData data = loadTrainingDataFromFile("C:\\Users\\Lenovo\\Documents\\dev\\NNetwork2\\TrainingData\\iris.csv");
 
-    Eigen::Matrix<NetNumT, 1, 2> l0B, l1B;
-    l0B << 0.35, 0.35;
-    l1B << 0.6, 0.6;
+    normaliseTrainingData(data, NormalisationMethod::Z_SCORE);
 
-    network.layer(0).setBiases( l0B ) ;
-    network.layer(1).setBiases( l1B ) ;
+    // Network setup
+    ClassList classes = getClasses();
+    size_t inputSz = getInputSz();
 
-    Eigen::Matrix<NetNumT, 2, 2> l0W, l1W;
-    l0W << 0.15, 0.25, 0.20, 0.30;
-    l1W << 0.40, 0.50, 0.45, 0.55;
+    NNetwork network(inputSz, classes);
+    network.addLayer(5, 0);
 
-    network.layer(0).setWeights(l0W);
-    network.layer(1).setWeights(l1W);
+    // Data
 
+    // Hyperparameters
+    LearningRateList lRList = {0.001, 0.001};
+    ActFuncList actFuncs = ActFuncList{ActFunc::RELU, ActFunc::SOFTMAX};
+    LossFunc lossFunc = LossFunc::CROSS_ENTROPY;
+    InitMethod initMethod = InitMethod::RANDOM;
+    size_t epochs = 500;
+    size_t batchSz = 8;
 
-    TrainingItem trItem;
-    trItem.labels.emplace("O1", 0.01);
-    trItem.labels.emplace("O2", 0.99);
-    trItem.inputs = inputs;
+    // Train
+    train(network, data, actFuncs, lossFunc, lRList, initMethod,epochs, batchSz);
 
-    LearningRateList lRList = {0.5, 0.5};
-    ActFuncList actFuncs = ActFuncList{ActFunc::RELU, ActFunc::RELU};
-    LossFunc lossFunc = LossFunc::MSE;
-
-    for(size_t i = 0; i < 0; ++i)
+    for(size_t i = 0; i < data.size();++i)
     {
-        LayerGradients lGrads(network.numLayers());
-        WeightGradients wGrads(network.numLayers());
-
-        calculateGradientsForTrainingItem(network, actFuncs, lossFunc, trItem,lGrads, wGrads) ;
-        updateNetworkWeightsBiasesWithGradients(network, lGrads,wGrads, lRList);
-
-        std::cout << "Error: " << calculateLoss(trItem.labels, lossFunc, network.outputLayer().getOutputs()) << std::endl;
+        network.setInputs(data[i].inputs);
+        network.feedforward(actFuncs);
+        std::cout << network.outputLayer().getOutputs() << std::endl;
     }
 
-    initialiseWeightsBiases(network, InitMethod::RANDOM, actFuncs);
-    printNetwork(network);
+
 }

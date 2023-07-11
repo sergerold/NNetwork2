@@ -6,8 +6,12 @@
 #define NNETWORK2_DEBUG_H
 
 #include "NNetwork.h"
-
+#include "Training.h"
 
 void printNetwork(NNetwork& network);
+void printWeightGradients(const WeightGradients& wGrads);
+void printLayerGradients(const LayerGradients& lGrads);
+
+void printTrainingData(const TrainingData& trData);
 
 #endif //NNETWORK2_DEBUG_H

@@ -7,21 +7,21 @@
 #include "NNetwork.h"
 #include "NLayer.h"
 
-NNetwork::NNetwork(const SingleRowT& inputs, const ClassList& labels)
+NNetwork::NNetwork(size_t inputSz, const ClassList& labels)
 {
     // add input layer
-    NLayer inputLayer(inputs.cols(), 0);
-    inputLayer.mLayerOutputs = inputs;
+    NLayer inputLayer(inputSz, 0);
+    inputLayer.mLayerOutputs.resize(1, inputSz);
     mNLayer.push_back(inputLayer);
 
     // add output layer
-    NLayer outputLayer(labels.size(), inputs.cols());
+    NLayer outputLayer(labels.size(), inputSz);
     mNLayer.push_back(outputLayer);
 
     // add output labels
     for(size_t lPos = 0; lPos < labels.size(); ++ lPos)
     {
-        mOutputClasses.emplace(*std::next(labels.begin(), lPos), lPos);
+        mOutputClasses.emplace(*std::next(labels.begin(), Eigen::Index(lPos)), lPos);
     }
 }
 
@@ -69,7 +69,7 @@ bool NNetwork::addLayer(size_t layerSz, size_t insertLayerBefore)
 bool NNetwork::changeLayerSz(size_t layerPos, size_t newLayerSz)
 {
     layer(layerPos).resizeLayer(newLayerSz);
-    auto nextLayer = mNLayer.begin() + INPUT_LAYER_OFFSET + layerPos + 1;
+    auto nextLayer = mNLayer.begin() + INPUT_LAYER_OFFSET + Eigen::Index(layerPos) + 1;
     if (nextLayer != mNLayer.end())
     {
         nextLayer->resizeNumWeightsPerNeuron(newLayerSz);

@@ -37,7 +37,7 @@ class NNetwork
         void applyActFuncToLayer(SingleRowT& netInputs, ActFunc actFunc);
 
     public:
-        NNetwork(const SingleRowT& inputs, const ClassList& labels);
+        NNetwork(size_t inputSz, const ClassList& labels);
 
         NLayer& layer(size_t layer);
         NLayer& outputLayer();
