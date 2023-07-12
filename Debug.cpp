@@ -49,5 +49,4 @@ void printTrainingData(const TrainingData& trData)
         }
         std::cout << std::endl;
     }
-
 }

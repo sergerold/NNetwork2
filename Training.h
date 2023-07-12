@@ -61,8 +61,11 @@ using LearningRateList = std::vector<NetNumT>;
 // data initialisation functions
 enum class InitMethod
 {
-        RANDOM,
-        HE,
+        RANDOM_UNIFORM,
+        NORMALISED_HE, // Use for ReLU
+        UNIFORM_HE,
+        NORMALISED_XAVIER, // Use for Sigmoid or Tan Act funcs
+        UNIFORM_XAVIER,
 };
 void initialiseWeightsBiases(NNetwork& network, InitMethod method, const ActFuncList& actFuncs);
 

@@ -166,16 +166,45 @@ NetNumT calculateLossForTrainingData(NNetwork& network, const TrainingData& trDa
 // GRADIENT CALCULATION ALGORITHMS
 void initialiseWeightsBiases(NNetwork& network, InitMethod method, const ActFuncList & actFuncs)
 {
+    std::default_random_engine generator;
     for(size_t layerPos = 0; layerPos < network.numLayers(); ++layerPos)
     {
         LayerWeightsT lWeights = network.layer(layerPos).getWeights();
         SingleRowT lBiases = network.layer(layerPos).getBiases();
-        if (method == InitMethod::RANDOM) // random values between -1 and 1
+        if (method == InitMethod::RANDOM_UNIFORM) // random values between -1 and 1
         {
             lWeights.setRandom();
-            lBiases.setRandom();
+        }
+        if(method == InitMethod::NORMALISED_HE)
+        {
+            NetNumT prevLayerSz = lWeights.rows();
+            NetNumT mean = 0, sd = sqrt(2/prevLayerSz);
+            std::normal_distribution<double> distribution(mean,sd);
+            lWeights = lWeights.unaryExpr([&](NetNumT wValue){return distribution(generator);});
+        }
+        if(method == InitMethod::UNIFORM_HE)
+        {
+            NetNumT prevLayerSz = lWeights.rows(), nextLayerSz = lWeights.cols();
+            NetNumT lowerBound = -(sqrt(6/(prevLayerSz + nextLayerSz))), upperBound = sqrt(6/(prevLayerSz + nextLayerSz));
+            std::uniform_real_distribution<double> distribution(lowerBound, upperBound);
+            lWeights = lWeights.unaryExpr([&](NetNumT wValue){return distribution(generator);});
+        }
+        if(method == InitMethod::NORMALISED_XAVIER)
+        {
+            NetNumT prevLayerSz = lWeights.rows(), nextLayerSz = lWeights.cols();
+            NetNumT mean = 0, sd = sqrt(2/(prevLayerSz + nextLayerSz));
+            std::normal_distribution<double> distribution(mean,sd);
+            lWeights = lWeights.unaryExpr([&](NetNumT wValue){return distribution(generator);});
+        }
+        if(method == InitMethod::UNIFORM_XAVIER)
+        {
+            NetNumT prevLayerSz = lWeights.rows(), nextLayerSz = lWeights.cols();
+            NetNumT lowerBound = -sqrt(6/(prevLayerSz + nextLayerSz)), upperBound = sqrt(6/(prevLayerSz + nextLayerSz));
+            std::uniform_real_distribution<double> distribution(lowerBound, upperBound);
+            lWeights = lWeights.unaryExpr([&](NetNumT wValue){return distribution(generator);});
         }
 
+        lBiases.setZero(); // biases tend to be intialised to zero
         network.layer(layerPos).setWeights(lWeights);
         network.layer(layerPos).setBiases(lBiases);
     }

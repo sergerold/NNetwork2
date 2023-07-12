@@ -91,7 +91,7 @@ const std::map<ClassT, size_t>& NNetwork::labels()
     return mOutputClasses;
 }
 
-void NNetwork::feedforward(ActFuncList actFuncs)
+void NNetwork::feedforward(const ActFuncList& actFuncs)
 {
     if (actFuncs.size() != numLayers())
     {

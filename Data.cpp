@@ -92,7 +92,7 @@ void normaliseTrainingData(TrainingData& trData, NormalisationMethod method)
 
 std::set<std::string> getClasses()
 {
-     return ClassList {"versicolor", "setosa", "virginica"};
+    return ClassList {"versicolor", "setosa", "virginica"};
 }
 
 NetNumT getInputSz()

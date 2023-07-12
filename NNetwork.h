@@ -52,7 +52,7 @@ class NNetwork
 
         const std::map<ClassT, size_t>& labels();
 
-        void feedforward(ActFuncList actFuncs);
+        void feedforward(const ActFuncList& actFuncs);
 };
 
 #endif //NNETWORK2_NNETWORK_H

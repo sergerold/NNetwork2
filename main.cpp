@@ -26,19 +26,13 @@ int main()
     LearningRateList lRList = {0.001, 0.001};
     ActFuncList actFuncs = ActFuncList{ActFunc::RELU, ActFunc::SOFTMAX};
     LossFunc lossFunc = LossFunc::CROSS_ENTROPY;
-    InitMethod initMethod = InitMethod::RANDOM;
+    InitMethod initMethod = InitMethod::UNIFORM_XAVIER;
     size_t epochs = 500;
     size_t batchSz = 8;
 
     // Train
     train(network, data, actFuncs, lossFunc, lRList, initMethod,epochs, batchSz);
-
-    for(size_t i = 0; i < data.size();++i)
-    {
-        network.setInputs(data[i].inputs);
-        network.feedforward(actFuncs);
-        std::cout << network.outputLayer().getOutputs() << std::endl;
-    }
-
+    //initialiseWeightsBiases(network,initMethod, actFuncs);
+    // printNetwork(network);
 
 }
