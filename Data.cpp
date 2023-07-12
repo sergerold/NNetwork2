@@ -44,7 +44,23 @@ SingleRowT trainingItemToVector(const std::map<ClassT, NetNumT>& trItem)
     return targetValuesAsVector;
 }
 
-void normaliseTrainingData(TrainingData& trData, NormalisationMethod method)
+bool areInputElementsDifferent(const Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic>& inputElements)
+{
+    NetNumT firstInput = inputElements.coeff(0, 0);
+    for(Eigen::Index row = 0; row < inputElements.rows(); ++row)
+    {
+        for(Eigen::Index col = 0; col < inputElements.cols(); ++col)
+        {
+            if(inputElements.coeff(row, col) != firstInput)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void normaliseTrainingData(TrainingData& trData, DataNormalisationMethod method)
 {
     // convert inputs in trData to matrix - every col is a list of an input element over every training item
     Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic> inputsAsMatrix;
@@ -54,12 +70,17 @@ void normaliseTrainingData(TrainingData& trData, NormalisationMethod method)
         inputsAsMatrix.row(pos) = trData[pos].inputs;
     }
     // normalise
-    if(method == NormalisationMethod::Z_SCORE)
+    if(method == DataNormalisationMethod::Z_SCORE)
     {
         // iterate over each set of inputElements in trData
         for(size_t inputElement = 0; inputElement < trData[0].inputs.size(); ++inputElement)
         {
             auto inputElementAcrossItems = inputsAsMatrix.col(inputElement);
+            // no valid z score if all elements same so do not amend
+            if(!areInputElementsDifferent(inputElementAcrossItems))
+            {
+                continue;
+            }
             NetNumT mean = inputElementAcrossItems.array().mean();
             NetNumT sd = sqrt ( (inputElementAcrossItems.array() - mean).pow(2).sum() /
                                 NetNumT (inputElementAcrossItems.size()) );
@@ -68,7 +89,7 @@ void normaliseTrainingData(TrainingData& trData, NormalisationMethod method)
             inputsAsMatrix.col(inputElement) = inputElementAcrossItems;
         }
     }
-    if(method == NormalisationMethod::MINMAX)
+    if(method == DataNormalisationMethod::MINMAX)
     {
         for(size_t inputElement = 0; inputElement < trData[0].inputs.size(); ++inputElement) {
 
@@ -79,7 +100,7 @@ void normaliseTrainingData(TrainingData& trData, NormalisationMethod method)
             inputsAsMatrix.col(inputElement) = inputElementAcrossItems;
         }
     }
-    if(method == NormalisationMethod::LOG)
+    if(method == DataNormalisationMethod::LOG)
     {
         inputsAsMatrix = inputsAsMatrix.array().log();
     }
@@ -92,12 +113,12 @@ void normaliseTrainingData(TrainingData& trData, NormalisationMethod method)
 
 std::set<std::string> getClasses()
 {
-    return ClassList {"versicolor", "setosa", "virginica"};
+    return ClassList {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
 }
 
 NetNumT getInputSz()
 {
-    return 4;
+    return 784;
 }
 
 TrainingData loadTrainingDataFromFile(std::string fName)

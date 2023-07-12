@@ -8,7 +8,7 @@
 #include "NNetwork.h"
 #include "Training.h"
 
-enum class NormalisationMethod
+enum class DataNormalisationMethod
 {
         MINMAX,
         Z_SCORE,
@@ -18,7 +18,7 @@ enum class NormalisationMethod
 SingleRowT trainingItemToVector(const std::map<ClassT, NetNumT>& trItem);
 bool isTrainingDataValid(const std::map<ClassT, size_t>& networkLabels, const TrainingData& trainingData, size_t networkInputSz);
 
-void normaliseTrainingData(TrainingData& trData, NormalisationMethod method);
+void normaliseTrainingData(TrainingData& trData, DataNormalisationMethod method);
 std::set<std::string> getClasses();
 NetNumT getInputSz();
 TrainingData loadTrainingDataFromFile(std::string fName);
