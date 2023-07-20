@@ -36,6 +36,14 @@ void printLayerGradients(const LayerGradients& lGrads)
     }
 }
 
+void printOutputs(const NNetwork& network)
+{
+    for(const auto c : network.classes())
+    {
+        std::cout << c.first << ": " << network.getOutput(c.first) << std::endl;
+    }
+}
+
 void printTrainingData(const TrainingData& trData)
 {
     for(size_t itemPos = 0; itemPos < trData.size(); ++itemPos)
@@ -48,5 +56,15 @@ void printTrainingData(const TrainingData& trData)
             std::cout << labelIt->first << " = " << labelIt->second << std::endl;
         }
         std::cout << std::endl;
+    }
+}
+
+void printTrainingItem(const TrainingItem trainingItem)
+{
+    std::cout << "Inputs (size: " << trainingItem.inputs.size() <<"): " << std::endl << trainingItem.inputs << std::endl;
+    std::cout << "Targets: " << std::endl;
+    for(auto labelIt = trainingItem.labels.begin(); labelIt != trainingItem.labels.end(); ++labelIt)
+    {
+        std::cout << labelIt->first << " = " << labelIt->second << std::endl;
     }
 }

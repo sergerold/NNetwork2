@@ -18,7 +18,7 @@ NNetwork::NNetwork(size_t inputSz, const ClassList& labels)
     NLayer outputLayer(labels.size(), inputSz);
     mNLayer.push_back(outputLayer);
 
-    // add output labels
+    // add output classes
     for(size_t lPos = 0; lPos < labels.size(); ++ lPos)
     {
         mOutputClasses.emplace(*std::next(labels.begin(), Eigen::Index(lPos)), lPos);
@@ -34,7 +34,7 @@ NLayer& NNetwork::layer(size_t layer)
     return mNLayer[layer + INPUT_LAYER_OFFSET];
 }
 
-const SingleRowT& NNetwork::getInputs()
+const SingleRowT& NNetwork::getInputs() const
 {
     return mNLayer[0].getOutputs();
 }
@@ -48,14 +48,14 @@ void NNetwork::setInputs(const SingleRowT& inputs)
     mNLayer[0].mLayerOutputs = inputs;
 }
 
-size_t NNetwork::numLayers()
+size_t NNetwork::numLayers() const
 {
     return mNLayer.size() - INPUT_LAYER_OFFSET;
 }
 
 bool NNetwork::addLayer(size_t layerSz, size_t insertLayerBefore)
 {
-    if (insertLayerBefore + INPUT_LAYER_OFFSET >= mNLayer.size())
+    if (insertLayerBefore + INPUT_LAYER_OFFSET >= mNLayer.size() || layerSz <= 0)
     {
         return false;
     }
@@ -81,12 +81,13 @@ NLayer& NNetwork::outputLayer()
     return *(mNLayer.end() - 1);
 }
 
-NetNumT NNetwork::getOutput(const ClassT& label)
+NetNumT NNetwork::getOutput(const ClassT& c) const
 {
-    return outputLayer().getOutputs()[mOutputClasses[label]];
+    size_t outputPos = mOutputClasses.at(c);
+    return mNLayer[mNLayer.size() - 1].getOutputs()[outputPos];
 }
 
-const std::map<ClassT, size_t>& NNetwork::labels()
+const std::map<ClassT, size_t>& NNetwork::classes() const
 {
     return mOutputClasses;
 }
@@ -110,16 +111,16 @@ void NNetwork::applyActFuncToLayer(SingleRowT& netInputs, ActFunc actFunc)
 {
     if (actFunc == ActFunc::SIGMOID)
     {
-        netInputs = netInputs.unaryExpr([](NetNumT input){return 1/(1 + exp( -input));});
+        netInputs = netInputs.unaryExpr([](NetNumT input) -> NetNumT {return 1/(1 + exp( -input));});
     }
     if (actFunc == ActFunc::RELU)
     {
-        netInputs = netInputs.unaryExpr([](NetNumT input) {return fmax(0, input);});
+        netInputs = netInputs.unaryExpr([](NetNumT input) ->NetNumT {return fmax(0, input);});
     }
     if (actFunc == ActFunc::SOFTMAX)
     {
         auto inputsAsExp = netInputs.array().exp();
         double expSum = inputsAsExp.sum();
-        netInputs = inputsAsExp.unaryExpr([&](NetNumT input){return input / expSum;});
+        netInputs = inputsAsExp.unaryExpr([&](NetNumT input) ->NetNumT {return input / expSum;});
     }
 }

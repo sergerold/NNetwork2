@@ -27,7 +27,6 @@ void NLayer::setBiases(const SingleRowT& biases)
     mLayerBiases = biases;
 }
 
-
 const SingleRowT& NLayer::getOutputs() const
 {
     return mLayerOutputs;
@@ -47,10 +46,6 @@ void NLayer::setWeights(const LayerWeightsT& weights)
     mLayerWeights = weights;
 }
 
-Eigen::Ref<Eigen::VectorXd> NLayer::getWeightsForNeuron(size_t neuronPos)
-{
-    return mLayerWeights.col(Eigen::Index (neuronPos) );
-}
 
 size_t NLayer::size()
 {
@@ -68,6 +63,3 @@ void NLayer::resizeNumWeightsPerNeuron(size_t newWeightsSz)
 {
     mLayerWeights.resize(Eigen::Index (newWeightsSz), mLayerWeights.cols());
 }
-
-
-

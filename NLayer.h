@@ -7,7 +7,7 @@
 
 #include "Eigen/Dense"
 
-using NetNumT = double;
+using NetNumT = float;
 using LayerWeightsT =  Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic>;
 using SingleRowT = Eigen::Matrix<NetNumT, 1, Eigen::Dynamic>;
 
@@ -31,7 +31,6 @@ class NLayer
 
         const LayerWeightsT& getWeights();
         void setWeights(const LayerWeightsT& weights);
-        Eigen::Ref<Eigen::VectorXd> getWeightsForNeuron(size_t neuronPos);
 
         size_t size();
 

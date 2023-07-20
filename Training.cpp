@@ -5,6 +5,8 @@
 #include <iostream>
 #include <random>
 #include <algorithm>
+#include <fstream>
+
 
 #include "Training.h"
 #include "Data.h"
@@ -146,17 +148,18 @@ NetNumT calculateLossForTrainingItem(const Labels& labels, LossFunc lossFunc, co
     }
     if (lossFunc == LossFunc::CROSS_ENTROPY)
     {
-        return -(networkOut.array().log() * targetValuesAsVector.array()).sum();
+        const NetNumT VERY_SMALL_NUMBER = 0.0000001; // add this to output values so as to ensure no log(0)
+        return -( (networkOut.array() + VERY_SMALL_NUMBER).log() * targetValuesAsVector.array()).sum();
     }
 }
-
 
 NetNumT calculateLossForTrainingData(NNetwork& network, const TrainingData& trData, const ActFuncList& actFuncs, LossFunc lossFunc)
 {
     NetNumT trainingError = 0;
     for(const TrainingItem& trItem : trData)
     {
-        network.setInputs(trItem.inputs);
+        network.setInputs(trItem.inputs.cast<NetNumT>());
+
         network.feedforward(actFuncs);
         trainingError += calculateLossForTrainingItem(trItem.labels, lossFunc, network.outputLayer().getOutputs());
     }
@@ -180,28 +183,28 @@ void initialiseWeightsBiases(NNetwork& network, InitMethod method, const ActFunc
             NetNumT prevLayerSz = lWeights.rows();
             NetNumT mean = 0, sd = sqrt(2/prevLayerSz);
             std::normal_distribution<double> distribution(mean,sd);
-            lWeights = lWeights.unaryExpr([&](NetNumT wValue){return distribution(generator);});
+            lWeights = lWeights.unaryExpr([&](NetNumT wValue) ->NetNumT {return distribution(generator);});
         }
         if(method == InitMethod::UNIFORM_HE)
         {
             NetNumT prevLayerSz = lWeights.rows(), nextLayerSz = lWeights.cols();
             NetNumT lowerBound = -(sqrt(6/(prevLayerSz + nextLayerSz))), upperBound = sqrt(6/(prevLayerSz + nextLayerSz));
             std::uniform_real_distribution<double> distribution(lowerBound, upperBound);
-            lWeights = lWeights.unaryExpr([&](NetNumT wValue){return distribution(generator);});
+            lWeights = lWeights.unaryExpr([&](NetNumT wValue)->NetNumT {return distribution(generator);});
         }
         if(method == InitMethod::NORMALISED_XAVIER)
         {
             NetNumT prevLayerSz = lWeights.rows(), nextLayerSz = lWeights.cols();
             NetNumT mean = 0, sd = sqrt(2/(prevLayerSz + nextLayerSz));
             std::normal_distribution<double> distribution(mean,sd);
-            lWeights = lWeights.unaryExpr([&](NetNumT wValue){return distribution(generator);});
+            lWeights = lWeights.unaryExpr([&](NetNumT wValue) ->NetNumT {return distribution(generator);});
         }
         if(method == InitMethod::UNIFORM_XAVIER)
         {
             NetNumT prevLayerSz = lWeights.rows(), nextLayerSz = lWeights.cols();
             NetNumT lowerBound = -sqrt(6/(prevLayerSz + nextLayerSz)), upperBound = sqrt(6/(prevLayerSz + nextLayerSz));
             std::uniform_real_distribution<double> distribution(lowerBound, upperBound);
-            lWeights = lWeights.unaryExpr([&](NetNumT wValue){return distribution(generator);});
+            lWeights = lWeights.unaryExpr([&](NetNumT wValue)->NetNumT {return distribution(generator);});
         }
 
         lBiases.setZero(); // biases tend to be intialised to zero
@@ -297,7 +300,7 @@ void calculateGradientsForTrainingItem(NNetwork& network, const ActFuncList& act
         throw std::logic_error("If cross entropy loss function then final hidden layer must use softmax activation function");
     }
     // load inputs and feedforward
-    network.setInputs(trItem.inputs);
+    network.setInputs(trItem.inputs.cast<NetNumT>());
     network.feedforward(actFuncs);
 
     // calculate the final layer gradients
@@ -360,9 +363,9 @@ void calculateGradientsOverBatch(NNetwork& network, TrainingData& trData, Traini
     weightGrads.divideWeightGradients(batchSz);
 }
 
-void train(NNetwork& network, TrainingData trData, ActFuncList actFuncs, LossFunc lossFunc, LearningRateList lrList, InitMethod initMethod, size_t epochsToRun, size_t batchSz)
+void train(NNetwork& network, TrainingData& trData, const ActFuncList& actFuncs, LossFunc lossFunc, const LearningRateList& lrList, InitMethod initMethod, size_t epochsToRun, size_t batchSz)
 {
-    if (!isTrainingDataValid(network.labels(), trData, network.getInputs().size()))
+    if (!isTrainingDataValid(network.classes(), trData, network.getInputs().size()))
     {
         throw std::logic_error("Training data invalid");
     }

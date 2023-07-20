@@ -86,7 +86,6 @@ void calculateGradientsOverBatch(NNetwork& network, TrainingData& trData, Traini
 
 // TRAIN
 void updateNetworkWeightsBiasesWithGradients(NNetwork& network, const LayerGradients& layerGrads, const WeightGradients& weightGrads, const LearningRateList& learningRatesPerLayer);
-
-void train(NNetwork& network, TrainingData trData, ActFuncList actFuncs, LossFunc lossFunc, LearningRateList lrList, InitMethod initMethod, size_t epochsToRun, size_t batchSz);
+void train(NNetwork& network, TrainingData & trData, const ActFuncList& actFuncs, LossFunc lossFunc, const LearningRateList& lrList, InitMethod initMethod, size_t epochsToRun, size_t batchSz);
 
 #endif //NNETWORK2_TRAINING_H
