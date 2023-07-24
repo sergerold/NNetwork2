@@ -31,17 +31,9 @@ int main()
     LossFunc lossFunc = LossFunc::CROSS_ENTROPY;
     InitMethod initMethod = InitMethod::UNIFORM_HE;
     size_t epochs = 100;
-    size_t batchSz = 8;
+    size_t batchSz = 32;
 
     // Train
     train(network, data, actFuncs, lossFunc, lRList, initMethod,epochs, batchSz);
-//    std::ifstream in("mnist_error.net");
-//    ActFuncList funcList2;
-//    NNetwork network2{deserialise(in, funcList2)};
-//
-//    size_t dataPos = 3020;
-//    network2.setInputs(data[dataPos].inputs);
-//    network2.feedforward(actFuncs);
-//    std::cout << calculateLossForTrainingItem(data[dataPos].labels, lossFunc, network2.outputLayer().getOutputs());
 
 }

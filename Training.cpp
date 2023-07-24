@@ -374,7 +374,7 @@ void train(NNetwork& network, TrainingData& trData, const ActFuncList& actFuncs,
     for(size_t epoch = 0; epoch < epochsToRun; ++epoch)
     {
         std::shuffle(trData.begin(), trData.end(), std::default_random_engine(12345));
-        for(auto trItemIt = trData.begin(); trItemIt < trData.end(); ++trItemIt)
+        for(auto trItemIt = trData.begin(); trItemIt < trData.end(); trItemIt += batchSz)
         {
             LayerGradients lGradsOverBatch(network.numLayers());
             WeightGradients wGradsOverBatch(network.numLayers());
