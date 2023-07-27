@@ -169,6 +169,11 @@ NetNumT calculateLossForTrainingData(NNetwork& network, const TrainingData& trDa
 // GRADIENT CALCULATION ALGORITHMS
 void initialiseWeightsBiases(NNetwork& network, InitMethod method, const ActFuncList & actFuncs)
 {
+    if(method == InitMethod::NO_INIT)
+    {
+        // if no init then leave weights and biases
+        return;
+    }
     std::default_random_engine generator;
     for(size_t layerPos = 0; layerPos < network.numLayers(); ++layerPos)
     {
@@ -206,7 +211,6 @@ void initialiseWeightsBiases(NNetwork& network, InitMethod method, const ActFunc
             std::uniform_real_distribution<double> distribution(lowerBound, upperBound);
             lWeights = lWeights.unaryExpr([&](NetNumT wValue)->NetNumT {return distribution(generator);});
         }
-
         lBiases.setZero(); // biases tend to be intialised to zero
         network.layer(layerPos).setWeights(lWeights);
         network.layer(layerPos).setBiases(lBiases);
@@ -254,6 +258,11 @@ void calculateHiddenLayerGradientsForTrainingItem(NNetwork& network, const ActFu
         SingleRowT errorWrtOutput = subsequentLayerError * weightsOfSubsequentLayer.transpose();
         SingleRowT activationFunctionGradient = calculateActivationFunctionGradients(network.layer(layerPos), actFuncs[layerPos]);
         SingleRowT errorWrtNetInput = errorWrtOutput.array() * activationFunctionGradient.array();
+
+        if (!errorWrtNetInput.allFinite())
+        {
+            throw std::logic_error("Contains INF or NaN");
+        }
         layerGrads.insertLayerGradients(errorWrtNetInput, layerPos);
 
         if (layerPos == 0)
@@ -280,8 +289,13 @@ void calculateWeightGradientsForTrainingItem(NNetwork& network, const LayerGradi
         const SingleRowT& currentLayerGrad = layerGrads.getLayerGradients(layerPos);
 
         LayerWeightsT outerProduct = prevLayerOutput.transpose() * currentLayerGrad;
+        if (!outerProduct.allFinite())
+        {
+            throw std::logic_error("Contains INF or NaN");
+        }
         weightGrads.insertWeightGradientsForLayer(outerProduct, layerPos);
 
+        // ugly way of terminating loop when moving back
         if(layerPos == 0)
         {
             break;
@@ -306,6 +320,10 @@ void calculateGradientsForTrainingItem(NNetwork& network, const ActFuncList& act
     // calculate the final layer gradients
     size_t outputLayerPos = network.numLayers() - 1;
     SingleRowT outputLayerGradients = calculateOutputLayerGradientsForTrainingItem(network.outputLayer(), actFuncs[outputLayerPos], lossFunc, trItem.labels);
+    if(!outputLayerGradients.allFinite())
+    {
+        throw std::logic_error("Contains INF or NaN");
+    }
     layerGrads.insertLayerGradients(outputLayerGradients, outputLayerPos);
 
     // calculate the hidden layer gradients
@@ -313,6 +331,7 @@ void calculateGradientsForTrainingItem(NNetwork& network, const ActFuncList& act
 
     // calculate the weight gradients
     calculateWeightGradientsForTrainingItem(network, layerGrads, weightGrads);
+
 }
 
 void updateNetworkWeightsBiasesWithGradients(NNetwork& network, const LayerGradients& layerGrads, const WeightGradients& weightGrads, const LearningRateList& learningRatesPerLayer)

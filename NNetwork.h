@@ -50,11 +50,12 @@ class NNetwork
         void setInputs(const SingleRowT& inputs);
 
         bool addLayer(size_t layerSz, size_t insertPos);
-        bool changeLayerSz(size_t layer, size_t newLayerSz);
+        void changeLayerSz(size_t layer, size_t newLayerSz);
 
         const std::map<ClassT, size_t>& classes() const;
 
         void feedforward(const ActFuncList& actFuncs);
+        void debugFF(const ActFuncList& actFuncs);
 
 };
 

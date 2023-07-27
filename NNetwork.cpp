@@ -66,7 +66,7 @@ bool NNetwork::addLayer(size_t layerSz, size_t insertLayerBefore)
     return true;
 }
 
-bool NNetwork::changeLayerSz(size_t layerPos, size_t newLayerSz)
+void NNetwork::changeLayerSz(size_t layerPos, size_t newLayerSz)
 {
     layer(layerPos).resizeLayer(newLayerSz);
     auto nextLayer = mNLayer.begin() + INPUT_LAYER_OFFSET + Eigen::Index(layerPos) + 1;
@@ -104,6 +104,38 @@ void NNetwork::feedforward(const ActFuncList& actFuncs)
         const Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic>& currentLayerWeights = mNLayer[layerPos].getWeights();
         mNLayer[layerPos].mLayerOutputs = (prevLayerOutput * currentLayerWeights) + mNLayer[layerPos].getBiases();
         applyActFuncToLayer(mNLayer[layerPos].mLayerOutputs, actFuncs[layerPos - 1]);
+
+        if (!mNLayer[layerPos].mLayerOutputs.array().allFinite())
+        {
+            throw std::logic_error("INF or NaN");
+        }
+    }
+}
+
+void NNetwork::debugFF(const ActFuncList& actFuncs)
+{
+    if (actFuncs.size() != numLayers())
+    {
+        throw std::logic_error("Number of activation functions does not match layers in network");
+    }
+    for(size_t layerPos = 0 + INPUT_LAYER_OFFSET; layerPos < mNLayer.size(); ++layerPos)
+    {
+        const SingleRowT& prevLayerOutput = mNLayer[ layerPos - 1].getOutputs();
+        const Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic>& currentLayerWeights = mNLayer[layerPos].getWeights();
+        mNLayer[layerPos].mLayerOutputs = (prevLayerOutput * currentLayerWeights) + mNLayer[layerPos].getBiases();
+        if (layerPos == mNLayer.size() - 1)
+        {
+            std::cout << "###############" << std::endl;
+            std::cout << mNLayer[layerPos].mLayerOutputs;
+            std::cout << "###############" << std::endl;
+        }
+        applyActFuncToLayer(mNLayer[layerPos].mLayerOutputs, actFuncs[layerPos - 1]);
+        if (layerPos == mNLayer.size() - 1)
+        {
+            std::cout << "**************" << std::endl;
+            std::cout << mNLayer[layerPos].mLayerOutputs;
+            std::cout << "**************" << std::endl;
+        }
     }
 }
 
@@ -119,8 +151,9 @@ void NNetwork::applyActFuncToLayer(SingleRowT& netInputs, ActFunc actFunc)
     }
     if (actFunc == ActFunc::SOFTMAX)
     {
-        auto inputsAsExp = netInputs.array().exp();
-        double expSum = inputsAsExp.sum();
-        netInputs = inputsAsExp.unaryExpr([&](NetNumT input) ->NetNumT {return input / expSum;});
+        // compute normalised e^x
+        auto inputsAsNormExp = (netInputs.array() - netInputs.maxCoeff()).exp();
+        double expSum = inputsAsNormExp.sum();
+        netInputs = inputsAsNormExp.unaryExpr([&](NetNumT input) ->NetNumT {return input / expSum;});
     }
 }
