@@ -92,18 +92,41 @@ void normaliseTrainingData(TrainingData& trData, DataNormalisationMethod method)
     }
     if(method == DataNormalisationMethod::MINMAX)
     {
-        for(size_t inputElement = 0; inputElement < trData[0].inputs.size(); ++inputElement) {
-
+        for(size_t inputElement = 0; inputElement < trData[0].inputs.size(); ++inputElement)
+        {
             auto inputElementAcrossItems = inputsAsMatrix.col(Eigen::Index(inputElement));
             NetNumT maxInputValue = inputElementAcrossItems.array().maxCoeff();
             NetNumT minInputValue = inputElementAcrossItems.array().minCoeff();
+
+            // DO NOT NORMALISE IF VALUES ALL SAME (DIVIDING BY 0 GIVES ERROR)
+            if(minInputValue == maxInputValue)
+            {
+                continue;
+            }
+
             inputElementAcrossItems = (inputElementAcrossItems.array() - minInputValue) / (maxInputValue - minInputValue);
             inputsAsMatrix.col(Eigen::Index(inputElement)) = inputElementAcrossItems;
         }
     }
     if(method == DataNormalisationMethod::LOG)
     {
-        inputsAsMatrix = inputsAsMatrix.array().log();
+        for(Eigen::Index r = 0; r < inputsAsMatrix.rows(); ++r)
+        {
+            for(Eigen::Index c = 0; c < inputsAsMatrix.cols(); ++c)
+            {
+                if(inputsAsMatrix.coeff(r, c) < 0)
+                {
+                    throw std::out_of_range("Cannot log scale if values less than 0");
+                }
+            }
+        }
+        // ADD 1 TO AVOID LOG 0 (UNDEFINED)
+        inputsAsMatrix = (inputsAsMatrix.array() + 1).log();
+    }
+    //check no invalid errors
+    if(!inputsAsMatrix.allFinite())
+    {
+        throw std::logic_error("INF or NaN in inputs");
     }
     // put data back in trData
     for(Eigen::Index trItemPos = 0; trItemPos < trData.size(); ++trItemPos)

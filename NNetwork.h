@@ -36,26 +36,25 @@ class NNetwork
 
         const size_t INPUT_LAYER_OFFSET = 1;
 
-        void applyActFuncToLayer(SingleRowT& netInputs, ActFunc actFunc);
+        static  void applyActFuncToLayer(SingleRowT& netInputs, ActFunc actFunc);
 
     public:
         NNetwork(size_t inputSz, const ClassList& labels);
 
         NLayer& layer(size_t layer);
         NLayer& outputLayer();
-        size_t numLayers() const;
-        NetNumT getOutput(const ClassT&) const;
+        [[nodiscard]] size_t numLayers() const;
+        [[nodiscard]] NetNumT getOutput(const ClassT&) const;
 
-        const SingleRowT& getInputs() const;
+        [[nodiscard]] const SingleRowT& getInputs() const;
         void setInputs(const SingleRowT& inputs);
 
         bool addLayer(size_t layerSz, size_t insertPos);
         void changeLayerSz(size_t layer, size_t newLayerSz);
 
-        const std::map<ClassT, size_t>& classes() const;
+        [[nodiscard]] const std::map<ClassT, size_t>& classes() const;
 
         void feedforward(const ActFuncList& actFuncs);
-        void debugFF(const ActFuncList& actFuncs);
 
 };
 

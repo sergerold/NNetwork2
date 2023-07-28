@@ -167,14 +167,14 @@ NetNumT calculateLossForTrainingData(NNetwork& network, const TrainingData& trDa
 }
 
 // GRADIENT CALCULATION ALGORITHMS
-void initialiseWeightsBiases(NNetwork& network, InitMethod method, const ActFuncList & actFuncs)
+void initialiseWeightsBiases(NNetwork& network, InitMethod method)
 {
     if(method == InitMethod::NO_INIT)
     {
         // if no init then leave weights and biases
         return;
     }
-    std::default_random_engine generator;
+    std::default_random_engine generator(12345);
     for(size_t layerPos = 0; layerPos < network.numLayers(); ++layerPos)
     {
         LayerWeightsT lWeights = network.layer(layerPos).getWeights();
@@ -185,8 +185,8 @@ void initialiseWeightsBiases(NNetwork& network, InitMethod method, const ActFunc
         }
         if(method == InitMethod::NORMALISED_HE)
         {
-            NetNumT prevLayerSz = lWeights.rows();
-            NetNumT mean = 0, sd = sqrt(2/prevLayerSz);
+            Eigen::Index prevLayerSz = lWeights.rows();
+            NetNumT mean = 0, sd = sqrt(NetNumT (2)/prevLayerSz);
             std::normal_distribution<double> distribution(mean,sd);
             lWeights = lWeights.unaryExpr([&](NetNumT wValue) ->NetNumT {return distribution(generator);});
         }
@@ -364,13 +364,9 @@ void updateNetworkWeightsBiasesWithGradients(NNetwork& network, const LayerGradi
     }
 }
 
-void calculateGradientsOverBatch(NNetwork& network, TrainingData& trData, TrainingData::iterator batchStart, size_t batchSz, const ActFuncList& actFuncs, LossFunc lossFunc, LayerGradients& layerGrads, WeightGradients& weightGrads)
+void calculateGradientsOverBatch(NNetwork& network, TrainingData::iterator batchStart, size_t batchSz, const ActFuncList& actFuncs, LossFunc lossFunc, LayerGradients& layerGrads, WeightGradients& weightGrads)
 {
-    if(std::distance(batchStart, trData.end()) < batchSz) // shorten batch sz if remaining training items less than batch sz
-    {
-        batchSz = std::distance(batchStart, trData.end());
-    }
-    for(auto trItemIt = batchStart; trItemIt != batchStart + batchSz; ++trItemIt)
+    for(auto trItemIt = batchStart; trItemIt != std::next(batchStart, batchSz); ++trItemIt)
     {
         LayerGradients layerGradientsForTrItem(network.numLayers());
         WeightGradients weightGradientsForTrItem(network.numLayers());
@@ -388,7 +384,7 @@ void train(NNetwork& network, TrainingData& trData, const ActFuncList& actFuncs,
     {
         throw std::logic_error("Training data invalid");
     }
-    initialiseWeightsBiases(network, initMethod, actFuncs);
+    initialiseWeightsBiases(network, initMethod);
 
     for(size_t epoch = 0; epoch < epochsToRun; ++epoch)
     {
@@ -397,7 +393,7 @@ void train(NNetwork& network, TrainingData& trData, const ActFuncList& actFuncs,
         {
             LayerGradients lGradsOverBatch(network.numLayers());
             WeightGradients wGradsOverBatch(network.numLayers());
-            calculateGradientsOverBatch(network, trData, trItemIt, batchSz,actFuncs, lossFunc,lGradsOverBatch,wGradsOverBatch);
+            calculateGradientsOverBatch(network, trItemIt, batchSz, actFuncs, lossFunc, lGradsOverBatch, wGradsOverBatch);
             updateNetworkWeightsBiasesWithGradients(network,lGradsOverBatch, wGradsOverBatch, lrList);
         }
         std::cout << "Epoch: " << epoch << " Error: " << std::fixed << calculateLossForTrainingData(network, trData, actFuncs, lossFunc) << std::endl;
