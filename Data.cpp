@@ -17,13 +17,6 @@ bool isTrainingDataValid(const std::map<ClassT, size_t>& networkLabels, const Tr
         {
             return false;
         }
-        for (const auto & networkLabel : networkLabels)
-        {
-            if (targets.count(networkLabel.first) < 1)
-            {
-                return false;
-            }
-        }
         if (item.inputs.size() != networkInputSz)
         {
             return false;
@@ -157,7 +150,8 @@ TrainingData loadTrainingDataFromFile(std::string fName)
     }
 
     std::string lineOfFile, delimiter = ",";
-    while (std::getline(dataFile, lineOfFile)) {
+    while (std::getline(dataFile, lineOfFile))
+    {
         lineOfFile += delimiter; // add delimiter to end of line so as to easily parse
         TrainingItem trItem;
         trItem.inputs.resize(1, getInputSz());
@@ -168,12 +162,13 @@ TrainingData loadTrainingDataFromFile(std::string fName)
         lineOfFile.erase(0, pos + delimiter.length());
 
         ClassList classes = getClasses();
-
+        std::map<ClassT, NetNumT> labels;
         for(auto it = classes.begin(); it != classes.end(); ++it)
         {
-            trItem.labels[*it] = 0;
+            labels[*it] = 0;
         }
-        trItem.labels[targetNum] = 1;
+        labels[targetNum] = 1;
+        trItem.labels = trainingItemToVector(labels);
 
         // add inputs
         std::string inputAsStr;

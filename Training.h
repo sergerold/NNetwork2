@@ -11,7 +11,7 @@
 
 // types
 
-using Labels = std::map<ClassT, NetNumT>;
+using Labels = SingleRowT;
 
 struct TrainingItem
 {

@@ -53,18 +53,9 @@ void printTrainingData(const TrainingData& trData)
         std::cout << "Targets: " << std::endl;
         for(auto labelIt = trData[itemPos].labels.begin(); labelIt != trData[itemPos].labels.end(); ++labelIt)
         {
-            std::cout << labelIt->first << " = " << labelIt->second << std::endl;
+            //std::cout << labelIt->first << " = " << labelIt->second << std::endl;
         }
         std::cout << std::endl;
     }
 }
 
-void printTrainingItem(const TrainingItem trainingItem)
-{
-    std::cout << "Inputs (size: " << trainingItem.inputs.size() <<"): " << std::endl << trainingItem.inputs << std::endl;
-    std::cout << "Targets: " << std::endl;
-    for(auto labelIt = trainingItem.labels.begin(); labelIt != trainingItem.labels.end(); ++labelIt)
-    {
-        std::cout << labelIt->first << " = " << labelIt->second << std::endl;
-    }
-}

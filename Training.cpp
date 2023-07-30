@@ -138,18 +138,16 @@ void LayerGradients::divideLayerGradients(size_t divideBy)
 
 // LOSS FUNCTIONS
 
-
 NetNumT calculateLossForTrainingItem(const Labels& labels, LossFunc lossFunc, const SingleRowT& networkOut)
 {
-    SingleRowT targetValuesAsVector = trainingItemToVector(labels);
     if (lossFunc == LossFunc::MSE)
     {
-        return (networkOut - targetValuesAsVector).array().square().sum() / (NetNumT) targetValuesAsVector.size();
+        return (networkOut - labels).array().square().sum() / (NetNumT) labels.size();
     }
     if (lossFunc == LossFunc::CROSS_ENTROPY)
     {
         const NetNumT VERY_SMALL_NUMBER = 0.0000001; // add this to output values so as to ensure no log(0)
-        return -( (networkOut.array() + VERY_SMALL_NUMBER).log() * targetValuesAsVector.array()).sum();
+        return -( (networkOut.array() + VERY_SMALL_NUMBER).log() * labels.array()).sum();
     }
 }
 
@@ -228,21 +226,21 @@ SingleRowT calculateActivationFunctionGradients(const NLayer& layer, ActFunc act
         // Heaviside step function (derivative undefined at input 0 so set at 0.5)
         return (layer.getOutputs().array().sign() + 1) * 0.5;
     }
+    // no softmax derivative as always combined with cross entropy loss
 }
 
 SingleRowT calculateOutputLayerGradientsForTrainingItem(const NLayer& outputLayer, ActFunc actFuncForLayer, LossFunc lossFunc, const Labels& targets)
 {
     // convert target to vector format
-    SingleRowT targetsVec = trainingItemToVector(targets);
     // calculate layer gradients based upon loss function
     if (lossFunc == LossFunc::CROSS_ENTROPY)
     {
         // simplified calculation of derivative for cross entropy loss and softmax activation
-        return outputLayer.getOutputs() - targetsVec;
+        return outputLayer.getOutputs() - targets;
     }
     if (lossFunc == LossFunc::MSE)
     {
-        SingleRowT gradientOfMse = outputLayer.getOutputs() - targetsVec;
+        SingleRowT gradientOfMse = outputLayer.getOutputs() - targets;
         SingleRowT gradientOfActFunc = calculateActivationFunctionGradients(outputLayer, actFuncForLayer);
         return gradientOfMse.array() * gradientOfActFunc.array();
     }
