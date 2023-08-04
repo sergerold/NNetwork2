@@ -147,7 +147,9 @@ std::ostream& NNetwork::summarise(std::ostream& printer)
     printer << "*******************" << std::endl;
     for(size_t layerPos = 0; layerPos < numLayers(); ++layerPos)
     {
-        printer << "Layer " << layerPos << " : " << layer(layerPos).getOutputs().size() << std::endl;
+        printer << "Layer " << layerPos << " size : " << layer(layerPos).getOutputs().size() << std::endl;
+        printer << "Weight Dimensions " << " : Rows (" << layer(layerPos).getWeights().rows() << ")" << ", " << "Cols (" << layer(layerPos).getWeights().cols() << ")" << std::endl;
+        printer << "+++++++++" << std::endl;
     }
     printer << "*******************" << std::endl;
     printer << "Classes: " << std::endl;

@@ -19,8 +19,8 @@ int main()
     size_t inputSz = getInputSz();
 
     NNetwork network(inputSz, classes);
+    network.addLayer(64, 0);
     network.addLayer(128, 0);
-    network.addLayer(64, 1);
 
     // Hyperparameters
     LearningRateList lRList = {0.001, 0.001, 0.001};
