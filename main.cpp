@@ -26,10 +26,12 @@ int main()
     LearningRateList lRList = {0.001, 0.001, 0.001};
     ActFuncList actFuncs = ActFuncList{ActFunc::RELU, ActFunc::RELU, ActFunc::SOFTMAX};
     LossFunc lossFunc = LossFunc::CROSS_ENTROPY;
-    InitMethod initMethod = InitMethod::NORMALISED_HE;
+    InitMethod initMethod = InitMethod::UNIFORM_HE;
     size_t epochs = 1000;
     size_t batchSz = 8;
 
     // Train
-    train(network, data, actFuncs, lossFunc, lRList, initMethod,epochs, batchSz);
+    //train(network, data, actFuncs, lossFunc, lRList, initMethod,epochs, batchSz);
+
+    network.summarise(std::cout);
 }

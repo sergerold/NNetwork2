@@ -185,28 +185,28 @@ void initialiseWeightsBiases(NNetwork& network, InitMethod method)
         {
             Eigen::Index prevLayerSz = lWeights.rows();
             NetNumT mean = 0, sd = sqrt(NetNumT (2)/prevLayerSz);
-            std::normal_distribution<double> distribution(mean,sd);
+            std::normal_distribution<NetNumT> distribution(mean,sd);
             lWeights = lWeights.unaryExpr([&](NetNumT wValue) ->NetNumT {return distribution(generator);});
         }
         if(method == InitMethod::UNIFORM_HE)
         {
             NetNumT prevLayerSz = lWeights.rows(), nextLayerSz = lWeights.cols();
             NetNumT lowerBound = -(sqrt(6/(prevLayerSz + nextLayerSz))), upperBound = sqrt(6/(prevLayerSz + nextLayerSz));
-            std::uniform_real_distribution<double> distribution(lowerBound, upperBound);
+            std::uniform_real_distribution<NetNumT> distribution(lowerBound, upperBound);
             lWeights = lWeights.unaryExpr([&](NetNumT wValue)->NetNumT {return distribution(generator);});
         }
         if(method == InitMethod::NORMALISED_XAVIER)
         {
             NetNumT prevLayerSz = lWeights.rows(), nextLayerSz = lWeights.cols();
             NetNumT mean = 0, sd = sqrt(2/(prevLayerSz + nextLayerSz));
-            std::normal_distribution<double> distribution(mean,sd);
+            std::normal_distribution<NetNumT> distribution(mean,sd);
             lWeights = lWeights.unaryExpr([&](NetNumT wValue) ->NetNumT {return distribution(generator);});
         }
         if(method == InitMethod::UNIFORM_XAVIER)
         {
-            NetNumT prevLayerSz = lWeights.rows(), nextLayerSz = lWeights.cols();
-            NetNumT lowerBound = -sqrt(6/(prevLayerSz + nextLayerSz)), upperBound = sqrt(6/(prevLayerSz + nextLayerSz));
-            std::uniform_real_distribution<double> distribution(lowerBound, upperBound);
+            size_t prevLayerSz = lWeights.rows(), nextLayerSz = lWeights.cols();
+            NetNumT lowerBound = -sqrt(6/( prevLayerSz + nextLayerSz  )), upperBound = sqrt(6/(prevLayerSz + nextLayerSz ));
+            std::uniform_real_distribution<NetNumT> distribution(lowerBound, upperBound);
             lWeights = lWeights.unaryExpr([&](NetNumT wValue)->NetNumT {return distribution(generator);});
         }
         lBiases.setZero(); // biases tend to be intialised to zero

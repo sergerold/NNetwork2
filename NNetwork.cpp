@@ -138,3 +138,22 @@ void NNetwork::applyActFuncToLayer(SingleRowT& netInputs, ActFunc actFunc)
         netInputs = inputsAsNormExp.unaryExpr([&](NetNumT input) ->NetNumT {return input / expSum;});
     }
 }
+
+std::ostream& NNetwork::summarise(std::ostream& printer)
+{
+    printer << "*******************\nNETWORK SUMMARY\n*******************" << std::endl;
+    printer << "Input size: " << getInputs().size() << std::endl;
+    printer << "Number of Layers: " << numLayers() << std::endl;
+    printer << "*******************" << std::endl;
+    for(size_t layerPos = 0; layerPos < numLayers(); ++layerPos)
+    {
+        printer << "Layer " << layerPos << " : " << layer(layerPos).getOutputs().size() << std::endl;
+    }
+    printer << "*******************" << std::endl;
+    printer << "Classes: " << std::endl;
+    for(auto classIt = mOutputClasses.begin(); classIt != mOutputClasses.end(); ++classIt)
+    {
+        printer << "--> \"" << classIt->first << "\"" << std::endl;
+    }
+    return printer;
+}

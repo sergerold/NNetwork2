@@ -56,6 +56,8 @@ class NNetwork
 
         void feedforward(const ActFuncList& actFuncs);
 
+        std::ostream& summarise(std::ostream& printer);
+
 };
 
 
