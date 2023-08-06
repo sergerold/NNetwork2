@@ -16,12 +16,12 @@ enum class DataNormalisationMethod
 };
 
 SingleRowT trainingItemToVector(const std::map<ClassT, NetNumT>& trItem);
-bool isTrainingDataValid(const std::map<ClassT, size_t>& networkLabels, const TrainingData& trainingData, size_t networkInputSz);
+bool isTrainingDataValid(const std::map<ClassT, size_t>& networkLabels, const ExampleData& trainingData, size_t networkInputSz);
 
-void normaliseTrainingData(TrainingData& trData, DataNormalisationMethod method);
+void normaliseTrainingData(ExampleData& trData, DataNormalisationMethod method);
 std::set<std::string> getClasses();
 NetNumT getInputSz();
-TrainingData loadTrainingDataFromFile(std::string fName);
+ExampleData loadTrainingDataFromFile(std::string fName);
 
 bool serialise(std::ofstream& fileOut, NNetwork& network, const ActFuncList& actFuncList);
 NNetwork deserialise(std::ifstream& fileIn, ActFuncList& actFuncList);

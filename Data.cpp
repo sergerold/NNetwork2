@@ -8,17 +8,19 @@
 #include "Data.h"
 #include "DataSpecs.h"
 
-bool isTrainingDataValid(const std::map<ClassT, size_t>& networkLabels, const TrainingData& trainingData, size_t networkInputSz)
+bool isTrainingDataValid(const std::map<ClassT, size_t>& networkLabels, const ExampleData& trainingData, size_t networkInputSz)
 {
     for(const auto& item : trainingData)
     {
         const Labels& targets = item.labels;
         if (targets.size() != networkLabels.size())
         {
+            std::cout << targets.size() << ", " << networkLabels.size() << std::endl;
             return false;
         }
         if (item.inputs.size() != networkInputSz)
         {
+            std::cout << "FAIL 2" << std::endl;
             return false;
         }
     }
@@ -54,7 +56,7 @@ bool areInputElementsDifferent(const Eigen::Matrix<INPUT_TYPE, Eigen::Dynamic, E
     return false;
 }
 
-void normaliseTrainingData(TrainingData& trData, DataNormalisationMethod method)
+void normaliseTrainingData(ExampleData& trData, DataNormalisationMethod method)
 {
     // convert inputs in trData to matrix - every col is a list of an input element over every training item
     Eigen::Matrix<INPUT_TYPE, Eigen::Dynamic, Eigen::Dynamic> inputsAsMatrix;
@@ -138,9 +140,9 @@ NetNumT getInputSz()
     return INPUT_SZ;
 }
 
-TrainingData loadTrainingDataFromFile(std::string fName)
+ExampleData loadTrainingDataFromFile(std::string fName)
 {
-    TrainingData trData;
+    ExampleData trData;
     std::ifstream dataFile;
     dataFile.open(fName, std::ifstream::in);
 
@@ -153,8 +155,9 @@ TrainingData loadTrainingDataFromFile(std::string fName)
     while (std::getline(dataFile, lineOfFile))
     {
         lineOfFile += delimiter; // add delimiter to end of line so as to easily parse
-        TrainingItem trItem;
+        ExampleItem trItem;
         trItem.inputs.resize(1, getInputSz());
+
 
         // load expected outcome
         size_t pos = lineOfFile.find(delimiter);
@@ -168,6 +171,7 @@ TrainingData loadTrainingDataFromFile(std::string fName)
             labels[*it] = 0;
         }
         labels[targetNum] = 1;
+
         trItem.labels = trainingItemToVector(labels);
 
         // add inputs

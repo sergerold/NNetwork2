@@ -138,7 +138,7 @@ void LayerGradients::divideLayerGradients(size_t divideBy)
 
 // LOSS FUNCTIONS
 
-NetNumT calculateLossForTrainingItem(const Labels& labels, LossFunc lossFunc, const SingleRowT& networkOut)
+NetNumT calculateLossForExampleItem(const Labels& labels, LossFunc lossFunc, const SingleRowT& networkOut)
 {
     if (lossFunc == LossFunc::MSE)
     {
@@ -151,17 +151,40 @@ NetNumT calculateLossForTrainingItem(const Labels& labels, LossFunc lossFunc, co
     }
 }
 
-NetNumT calculateLossForTrainingData(NNetwork& network, const TrainingData& trData, const ActFuncList& actFuncs, LossFunc lossFunc)
+NetNumT calculateLossForExampleData(NNetwork& network, const ExampleData& trData, const ActFuncList& actFuncs, LossFunc lossFunc)
 {
     NetNumT trainingError = 0;
-    for(const TrainingItem& trItem : trData)
+    for(const ExampleItem& trItem : trData)
     {
         network.setInputs(trItem.inputs.cast<NetNumT>());
 
         network.feedforward(actFuncs);
-        trainingError += calculateLossForTrainingItem(trItem.labels, lossFunc, network.outputLayer().getOutputs());
+        trainingError += calculateLossForExampleItem(trItem.labels, lossFunc, network.outputLayer().getOutputs());
     }
     return trainingError / (NetNumT) trData.size(); // return average
+}
+
+NetNumT calculateAccuracyForExampleData(NNetwork& network, const ExampleData& data, ActFuncList actFuncs)
+{
+    NetNumT correct = 0;
+    for(auto item : data)
+    {
+        network.setInputs(item.inputs);
+        network.feedforward(actFuncs);
+        if(actFuncs[actFuncs.size() - 1] == ActFunc::SOFTMAX)
+        {
+            const SingleRowT& output = network.outputLayer().getOutputs();
+            // find highest probability in output
+            auto highestElementIt = std::max_element(output.begin(), output.end());
+            size_t posOfHighestElement = std::distance(output.begin(), highestElementIt);
+
+            if(item.labels.coeff(0, posOfHighestElement) == 1)
+            {
+                correct++;
+            }
+        }
+    }
+    return (correct / (NetNumT) data.size()) * 100;
 }
 
 // GRADIENT CALCULATION ALGORITHMS
@@ -301,7 +324,7 @@ void calculateWeightGradientsForTrainingItem(NNetwork& network, const LayerGradi
     }
 }
 
-void calculateGradientsForTrainingItem(NNetwork& network, const ActFuncList& actFuncs, LossFunc lossFunc, TrainingItem& trItem, LayerGradients& layerGrads, WeightGradients& weightGrads)
+void calculateGradientsForTrainingItem(NNetwork& network, const ActFuncList& actFuncs, LossFunc lossFunc, ExampleItem& trItem, LayerGradients& layerGrads, WeightGradients& weightGrads)
 {
     if(actFuncs.size() != network.numLayers())
     {
@@ -362,9 +385,9 @@ void updateNetworkWeightsBiasesWithGradients(NNetwork& network, const LayerGradi
     }
 }
 
-void calculateGradientsOverBatch(NNetwork& network, TrainingData::iterator batchStart, size_t batchSz, const ActFuncList& actFuncs, LossFunc lossFunc, LayerGradients& layerGrads, WeightGradients& weightGrads)
+void calculateGradientsOverBatch(NNetwork& network, ExampleData::iterator batchStart, ExampleData::iterator batchEnd, const ActFuncList& actFuncs, LossFunc lossFunc, LayerGradients& layerGrads, WeightGradients& weightGrads)
 {
-    for(auto trItemIt = batchStart; trItemIt != std::next(batchStart, batchSz); ++trItemIt)
+    for(auto trItemIt = batchStart; trItemIt != batchEnd; ++trItemIt)
     {
         LayerGradients layerGradientsForTrItem(network.numLayers());
         WeightGradients weightGradientsForTrItem(network.numLayers());
@@ -372,13 +395,13 @@ void calculateGradientsOverBatch(NNetwork& network, TrainingData::iterator batch
         layerGrads.addLayerGradients(layerGradientsForTrItem);
         weightGrads.addWeightGradients(weightGradientsForTrItem);
     }
-    layerGrads.divideLayerGradients(batchSz);
-    weightGrads.divideWeightGradients(batchSz);
+    layerGrads.divideLayerGradients(std::distance(batchStart, batchEnd));
+    weightGrads.divideWeightGradients(std::distance(batchStart, batchEnd));
 }
 
-void train(NNetwork& network, TrainingData& trData, const ActFuncList& actFuncs, LossFunc lossFunc, const LearningRateList& lrList, InitMethod initMethod, size_t epochsToRun, size_t batchSz)
+void train(NNetwork& network, ExampleData& trainingData, const ActFuncList& actFuncs, LossFunc lossFunc, const LearningRateList& lrList, InitMethod initMethod, size_t epochsToRun, size_t batchSz, ExampleData& testData)
 {
-    if (!isTrainingDataValid(network.classes(), trData, network.getInputs().size()))
+    if (!isTrainingDataValid(network.classes(), trainingData, network.getInputs().size()))
     {
         throw std::logic_error("Training data invalid");
     }
@@ -386,14 +409,27 @@ void train(NNetwork& network, TrainingData& trData, const ActFuncList& actFuncs,
 
     for(size_t epoch = 0; epoch < epochsToRun; ++epoch)
     {
-        std::shuffle(trData.begin(), trData.end(), std::default_random_engine(12345));
-        for(auto trItemIt = trData.begin(); trItemIt < trData.end(); trItemIt += batchSz)
+        std::shuffle(trainingData.begin(), trainingData.end(), std::default_random_engine(12345));
+        for(auto trItemIt = trainingData.begin(); trItemIt < trainingData.end(); trItemIt += batchSz)
         {
+            ExampleData::iterator batchEnd = trItemIt + batchSz;
+            if(batchEnd > trainingData.end())
+            {
+                batchEnd = trainingData.end();
+            }
             LayerGradients lGradsOverBatch(network.numLayers());
             WeightGradients wGradsOverBatch(network.numLayers());
-            calculateGradientsOverBatch(network, trItemIt, batchSz, actFuncs, lossFunc, lGradsOverBatch, wGradsOverBatch);
+            calculateGradientsOverBatch(network, trItemIt, batchEnd, actFuncs, lossFunc, lGradsOverBatch, wGradsOverBatch);
             updateNetworkWeightsBiasesWithGradients(network,lGradsOverBatch, wGradsOverBatch, lrList);
         }
-        std::cout << "Epoch: " << epoch << " Error: " << std::fixed << calculateLossForTrainingData(network, trData, actFuncs, lossFunc) << std::endl;
+        std::cout << "Epoch: " << epoch << std::endl;
+        std::cout << " -> Training Data:\n";
+        std::cout << "   --> Average Loss: " << std::fixed << calculateLossForExampleData(network, trainingData, actFuncs, lossFunc) << std::endl;
+        std::cout << "   --> Accuracy: " << std::fixed << calculateAccuracyForExampleData(network, trainingData, actFuncs) << "%" << std::endl;
+
+        std::cout << " -> Test Data:\n";
+        std::cout << "   --> Average Loss: " << std::fixed << calculateLossForExampleData(network, testData, actFuncs, lossFunc) << std::endl;
+        std::cout << "   --> Accuracy: " << std::fixed << calculateAccuracyForExampleData(network, testData, actFuncs) << "%" << std::endl;
+        std::cout << "********************\n";
     }
 }

@@ -44,18 +44,14 @@ void printOutputs(const NNetwork& network)
     }
 }
 
-void printTrainingData(const TrainingData& trData)
+void printTrainingData(const ExampleData& trData)
 {
     for(size_t itemPos = 0; itemPos < trData.size(); ++itemPos)
     {
         std::cout << "Item: " << itemPos << std::endl;
-        std::cout << "Inputs (size: " << trData[itemPos].inputs.size() <<"): " << std::endl << trData[itemPos].inputs << std::endl;
+        std::cout << std::fixed << "Inputs (size: " << trData[itemPos].inputs.size() <<"): " << std::endl << trData[itemPos].inputs << std::endl;
         std::cout << "Targets: " << std::endl;
-        for(auto labelIt = trData[itemPos].labels.begin(); labelIt != trData[itemPos].labels.end(); ++labelIt)
-        {
-            //std::cout << labelIt->first << " = " << labelIt->second << std::endl;
-        }
+        std::cout << std::fixed << trData[itemPos].labels << std::endl;
         std::cout << std::endl;
     }
 }
-

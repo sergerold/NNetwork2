@@ -14,6 +14,6 @@ void printLayerGradients(const LayerGradients& lGrads);
 
 void printOutputs(const NNetwork& network);
 
-void printTrainingData(const TrainingData& trData);
+void printTrainingData(const ExampleData& trData);
 
 #endif //NNETWORK2_DEBUG_H

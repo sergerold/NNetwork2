@@ -55,7 +55,7 @@ size_t NNetwork::numLayers() const
 
 bool NNetwork::addLayer(size_t layerSz, size_t insertLayerBefore)
 {
-    if (insertLayerBefore + INPUT_LAYER_OFFSET >= mNLayer.size() || layerSz <= 0)
+    if (insertLayerBefore + INPUT_LAYER_OFFSET >= mNLayer.size())
     {
         return false;
     }
@@ -145,12 +145,16 @@ std::ostream& NNetwork::summarise(std::ostream& printer)
     printer << "Input size: " << getInputs().size() << std::endl;
     printer << "Number of Layers: " << numLayers() << std::endl;
     printer << "*******************" << std::endl;
+    unsigned int weightCount = 0, biasCount = 0;
     for(size_t layerPos = 0; layerPos < numLayers(); ++layerPos)
     {
-        printer << "Layer " << layerPos << " size : " << layer(layerPos).getOutputs().size() << std::endl;
+        printer << "Layer " << layerPos << ", size : " << layer(layerPos).getOutputs().size() << std::endl;
         printer << "Weight Dimensions " << " : Rows (" << layer(layerPos).getWeights().rows() << ")" << ", " << "Cols (" << layer(layerPos).getWeights().cols() << ")" << std::endl;
         printer << "+++++++++" << std::endl;
+        biasCount += layer(layerPos).getOutputs().size();
+        weightCount += layer(layerPos).getWeights().rows() * layer(layerPos).getWeights().cols();
     }
+    std::cout << "Bias count: " << biasCount << "\nWeight Count: " << weightCount << std::endl;
     printer << "*******************" << std::endl;
     printer << "Classes: " << std::endl;
     for(auto classIt = mOutputClasses.begin(); classIt != mOutputClasses.end(); ++classIt)

@@ -13,12 +13,12 @@
 
 using Labels = SingleRowT;
 
-struct TrainingItem
+struct ExampleItem
 {
     InputList inputs;
     Labels labels;
 };
-using TrainingData = std::vector<TrainingItem>;
+using ExampleData = std::vector<ExampleItem>;
 
 enum class LossFunc
 {
@@ -70,9 +70,11 @@ enum class InitMethod
 };
 void initialiseWeightsBiases(NNetwork& network, InitMethod method);
 
-// loss functions
-NetNumT calculateLossForTrainingItem(const Labels& labels, LossFunc lossFunc, const SingleRowT& networkOut);
-NetNumT calculateLossForTrainingData(NNetwork& network, const TrainingData& trData, const ActFuncList& actFuncs, LossFunc lossFunc);
+// loss functions / accuracy calculations
+NetNumT calculateLossForExampleItem(const Labels& labels, LossFunc lossFunc, const SingleRowT& networkOut);
+NetNumT calculateLossForExampleData(NNetwork& network, const ExampleData& trData, const ActFuncList& actFuncs, LossFunc lossFunc);
+
+NetNumT calculateAccuracyForExampleData(NNetwork& network, const ExampleData& data, ActFuncList actFuncList);
 
 // Gradient calculation
 
@@ -82,11 +84,11 @@ SingleRowT calculateOutputLayerGradientsForTrainingItem(const NLayer& outputLaye
 void calculateHiddenLayerGradientsForTrainingItem(NNetwork& network, const ActFuncList& actFuncs, LayerGradients& layerGrads);
 void calculateWeightGradientsForTrainingItem(NNetwork& network, const LayerGradients& layerGrads, WeightGradients& weightGrads);
 
-void calculateGradientsForTrainingItem(NNetwork& network, const ActFuncList& actFuncs, LossFunc lossFunc, TrainingItem& trItem, LayerGradients& layerGrads, WeightGradients& weightGrads);
-void calculateGradientsOverBatch(NNetwork& network, TrainingData::iterator batchStart, size_t batchSz, const ActFuncList& actFuncs, LossFunc lossFunc, LayerGradients& layerGrads, WeightGradients& weightGrads);
+void calculateGradientsForTrainingItem(NNetwork& network, const ActFuncList& actFuncs, LossFunc lossFunc, ExampleItem& trItem, LayerGradients& layerGrads, WeightGradients& weightGrads);
+void calculateGradientsOverBatch(NNetwork& network, ExampleData::iterator batchStart, ExampleData::iterator batchEnd, const ActFuncList& actFuncs, LossFunc lossFunc, LayerGradients& layerGrads, WeightGradients& weightGrads);
 
 // TRAIN
 void updateNetworkWeightsBiasesWithGradients(NNetwork& network, const LayerGradients& layerGrads, const WeightGradients& weightGrads, const LearningRateList& learningRatesPerLayer);
-void train(NNetwork& network, TrainingData & trData, const ActFuncList& actFuncs, LossFunc lossFunc, const LearningRateList& lrList, InitMethod initMethod, size_t epochsToRun, size_t batchSz);
+void train(NNetwork& network, ExampleData& trainingData, const ActFuncList& actFuncs, LossFunc lossFunc, const LearningRateList& lrList, InitMethod initMethod, size_t epochsToRun, size_t batchSz, ExampleData& testData);
 
 #endif //NNETWORK2_TRAINING_H
