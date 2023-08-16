@@ -7,7 +7,9 @@
 
 #include "Eigen/Dense"
 
-using NetNumT = float;
+#include "DataSpecs.h"
+
+using NetNumT = INPUT_TYPE;
 using LayerWeightsT =  Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic>;
 using SingleRowT = Eigen::Matrix<NetNumT, 1, Eigen::Dynamic>;
 

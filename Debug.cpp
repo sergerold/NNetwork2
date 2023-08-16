@@ -22,10 +22,14 @@ void printNetwork(NNetwork& network)
 
 void printWeightGradients(const WeightGradients& wGrads)
 {
+    std::cout << "\n+++++++++++++++++++++++++++++\n";
     for(size_t layerPos = 0; layerPos < wGrads.numLayers(); ++layerPos)
     {
+        std::cout << "Layer " << layerPos << " weight gradients\n";
         std::cout << wGrads.getWeightGradientsForLayer(layerPos) << std::endl << std::endl;
     }
+    std::cout << "\n+++++++++++++++++++++++++++++\n";
+
 }
 
 void printLayerGradients(const LayerGradients& lGrads)

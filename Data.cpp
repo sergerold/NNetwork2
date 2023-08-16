@@ -121,7 +121,7 @@ void normaliseTrainingData(ExampleData& trData, DataNormalisationMethod method)
     //check no invalid errors
     if(!inputsAsMatrix.allFinite())
     {
-        throw std::logic_error("INF or NaN in inputs");
+        throw std::logic_error("(4) INF or NaN in inputs");
     }
     // put data back in trData
     for(Eigen::Index trItemPos = 0; trItemPos < trData.size(); ++trItemPos)
