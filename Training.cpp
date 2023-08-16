@@ -6,10 +6,12 @@
 #include <random>
 #include <algorithm>
 #include <fstream>
+#include <chrono>
 
 
 #include "Training.h"
 #include "Data.h"
+#include "Debug.h"
 
 // TYPES
 
@@ -18,13 +20,22 @@ WeightGradients::WeightGradients(size_t numLayers)
     weightGradients.insert(weightGradients.begin(), numLayers, LayerWeightsT());
 }
 
+WeightGradients::WeightGradients(NNetwork& network)
+{
+    for(size_t layerPos = 0; layerPos < network.numLayers(); ++layerPos)
+    {
+        weightGradients.push_back(network.layer(layerPos).getWeights());
+        weightGradients[layerPos].setZero();
+    }
+}
+
 void WeightGradients::insertWeightGradientsForLayer(const LayerWeightsT& newWeightGrads, size_t layer)
 {
     if(layer >= weightGradients.size())
     {
         throw std::out_of_range("Layer does not exist");
     }
-    weightGradients[layer] = newWeightGrads;
+    weightGradients[layer] = (newWeightGrads);
 }
 
 const LayerWeightsT& WeightGradients::getWeightGradientsForLayer(size_t layer) const
@@ -80,13 +91,23 @@ LayerGradients::LayerGradients(size_t numLayers)
     layerGradients.insert(layerGradients.begin(), numLayers, SingleRowT());
 }
 
+LayerGradients::LayerGradients(NNetwork& network)
+{
+    for(size_t layerPos = 0; layerPos < network.numLayers(); ++layerPos)
+    {
+        layerGradients.push_back(network.layer(layerPos).getBiases());
+        layerGradients[layerPos].setZero();
+    }
+
+}
+
 void LayerGradients::insertLayerGradients(const SingleRowT& newLayerGrads, size_t layer)
 {
     if(layer >= layerGradients.size())
     {
         throw std::out_of_range("Layer does not exist");
     }
-    layerGradients[layer] = newLayerGrads;
+    layerGradients[layer] = (newLayerGrads);
 }
 
 const SingleRowT& LayerGradients::getLayerGradients(size_t layer) const
@@ -158,7 +179,7 @@ NetNumT calculateLossForExampleData(NNetwork& network, const ExampleData& trData
     {
         network.setInputs(trItem.inputs.cast<NetNumT>());
 
-        network.feedforward(actFuncs);
+        network.feedforward(actFuncs, 0);
         trainingError += calculateLossForExampleItem(trItem.labels, lossFunc, network.outputLayer().getOutputs());
     }
     return trainingError / (NetNumT) trData.size(); // return average
@@ -170,7 +191,7 @@ NetNumT calculateAccuracyForExampleData(NNetwork& network, const ExampleData& da
     for(auto item : data)
     {
         network.setInputs(item.inputs);
-        network.feedforward(actFuncs);
+        network.feedforward(actFuncs, 0);
         if(actFuncs[actFuncs.size() - 1] == ActFunc::SOFTMAX)
         {
             const SingleRowT& output = network.outputLayer().getOutputs();
@@ -246,8 +267,8 @@ SingleRowT calculateActivationFunctionGradients(const NLayer& layer, ActFunc act
     }
     if(actFunc == ActFunc::RELU)
     {
-        // Heaviside step function (derivative undefined at input 0 so set at 0.5)
-        return (layer.getOutputs().array().sign() + 1) * 0.5;
+        // Heaviside step function (derivative undefined at input 0 so set at 0)
+        return layer.getOutputs().array().unaryExpr([](NetNumT num){return NetNumT (num > 0);} );
     }
     // no softmax derivative as always combined with cross entropy loss
 }
@@ -282,7 +303,7 @@ void calculateHiddenLayerGradientsForTrainingItem(NNetwork& network, const ActFu
 
         if (!errorWrtNetInput.allFinite())
         {
-            throw std::logic_error("Contains INF or NaN");
+            throw std::logic_error("(1) Contains INF or NaN");
         }
         layerGrads.insertLayerGradients(errorWrtNetInput, layerPos);
 
@@ -312,7 +333,7 @@ void calculateWeightGradientsForTrainingItem(NNetwork& network, const LayerGradi
         LayerWeightsT outerProduct = prevLayerOutput.transpose() * currentLayerGrad;
         if (!outerProduct.allFinite())
         {
-            throw std::logic_error("Contains INF or NaN");
+            throw std::logic_error("(2) Contains INF or NaN");
         }
         weightGrads.insertWeightGradientsForLayer(outerProduct, layerPos);
 
@@ -324,7 +345,7 @@ void calculateWeightGradientsForTrainingItem(NNetwork& network, const LayerGradi
     }
 }
 
-void calculateGradientsForTrainingItem(NNetwork& network, const ActFuncList& actFuncs, LossFunc lossFunc, ExampleItem& trItem, LayerGradients& layerGrads, WeightGradients& weightGrads)
+void calculateGradientsForTrainingItem(NNetwork& network, const ActFuncList& actFuncs, LossFunc lossFunc, ExampleItem& trItem, LayerGradients& layerGrads, WeightGradients& weightGrads, NetNumT dropOutRate)
 {
     if(actFuncs.size() != network.numLayers())
     {
@@ -336,14 +357,15 @@ void calculateGradientsForTrainingItem(NNetwork& network, const ActFuncList& act
     }
     // load inputs and feedforward
     network.setInputs(trItem.inputs.cast<NetNumT>());
-    network.feedforward(actFuncs);
+
+    network.feedforward(actFuncs, dropOutRate);
 
     // calculate the final layer gradients
     size_t outputLayerPos = network.numLayers() - 1;
     SingleRowT outputLayerGradients = calculateOutputLayerGradientsForTrainingItem(network.outputLayer(), actFuncs[outputLayerPos], lossFunc, trItem.labels);
     if(!outputLayerGradients.allFinite())
     {
-        throw std::logic_error("Contains INF or NaN");
+        throw std::logic_error("(3) Contains INF or NaN");
     }
     layerGrads.insertLayerGradients(outputLayerGradients, outputLayerPos);
 
@@ -353,9 +375,10 @@ void calculateGradientsForTrainingItem(NNetwork& network, const ActFuncList& act
     // calculate the weight gradients
     calculateWeightGradientsForTrainingItem(network, layerGrads, weightGrads);
 
+
 }
 
-void updateNetworkWeightsBiasesWithGradients(NNetwork& network, const LayerGradients& layerGrads, const WeightGradients& weightGrads, const LearningRateList& learningRatesPerLayer)
+void updateNetworkWeightsBiasesWithGradients(NNetwork& network, const LayerGradients& layerGrads, const WeightGradients& weightGrads, const LearningRateList& learningRatesPerLayer, NetNumT momentumFactor, LayerGradients& prevUpdateBiasDelta, WeightGradients& prevUpdateWeightDelta)
 {
     if(learningRatesPerLayer.size() != network.numLayers())
     {
@@ -364,19 +387,21 @@ void updateNetworkWeightsBiasesWithGradients(NNetwork& network, const LayerGradi
     size_t outputLayer = network.numLayers() - 1;
     for(size_t layerPos = outputLayer; ;--layerPos)
     {
-        NetNumT learningRateForLayer = learningRatesPerLayer[layerPos];
+        const NetNumT learningRateForLayer = learningRatesPerLayer[layerPos];
 
         // update weights
         const LayerWeightsT& layerWeights = network.layer(layerPos).getWeights();
         const LayerWeightsT& layerWeightGrads = weightGrads.getWeightGradientsForLayer(layerPos);
-        LayerWeightsT updatedWeights = layerWeights - (layerWeightGrads * learningRateForLayer);
-        network.layer(layerPos).setWeights(updatedWeights);
+        const LayerWeightsT& layerWeightsDelta = ((1.0 - momentumFactor) * layerWeightGrads) + (momentumFactor * prevUpdateWeightDelta.getWeightGradientsForLayer(layerPos));
+        network.layer(layerPos).setWeights(layerWeights - (learningRateForLayer * layerWeightsDelta));
+        prevUpdateWeightDelta.insertWeightGradientsForLayer(layerWeightsDelta, layerPos);
 
         // update biases
         const SingleRowT& layerBiases = network.layer(layerPos).getBiases();
         const SingleRowT& layerBiasGrads = layerGrads.getLayerGradients(layerPos);
-        SingleRowT updatedBiases = layerBiases - (layerBiasGrads * learningRateForLayer);
-        network.layer(layerPos).setBiases(updatedBiases);
+        const SingleRowT& layerBiasDelta = ((1 - momentumFactor) * layerBiasGrads) + (momentumFactor * prevUpdateBiasDelta.getLayerGradients(layerPos));
+        network.layer(layerPos).setBiases(layerBiases - (learningRateForLayer * layerBiasDelta));
+        prevUpdateBiasDelta.insertLayerGradients(layerBiasDelta, layerPos);
 
         if(layerPos == 0)
         {
@@ -385,21 +410,23 @@ void updateNetworkWeightsBiasesWithGradients(NNetwork& network, const LayerGradi
     }
 }
 
-void calculateGradientsOverBatch(NNetwork& network, ExampleData::iterator batchStart, ExampleData::iterator batchEnd, const ActFuncList& actFuncs, LossFunc lossFunc, LayerGradients& layerGrads, WeightGradients& weightGrads)
+void calculateGradientsOverBatch(NNetwork& network, ExampleData::iterator batchStart, ExampleData::iterator batchEnd, const ActFuncList& actFuncs, LossFunc lossFunc, LayerGradients& layerGrads, WeightGradients& weightGrads, NetNumT dropOutRate)
 {
+    size_t count = 0;
     for(auto trItemIt = batchStart; trItemIt != batchEnd; ++trItemIt)
     {
         LayerGradients layerGradientsForTrItem(network.numLayers());
         WeightGradients weightGradientsForTrItem(network.numLayers());
-        calculateGradientsForTrainingItem(network, actFuncs, lossFunc, *trItemIt, layerGradientsForTrItem, weightGradientsForTrItem);
+        calculateGradientsForTrainingItem(network, actFuncs, lossFunc, *trItemIt, layerGradientsForTrItem, weightGradientsForTrItem, dropOutRate);
         layerGrads.addLayerGradients(layerGradientsForTrItem);
         weightGrads.addWeightGradients(weightGradientsForTrItem);
+        ++count;
     }
     layerGrads.divideLayerGradients(std::distance(batchStart, batchEnd));
     weightGrads.divideWeightGradients(std::distance(batchStart, batchEnd));
 }
 
-void train(NNetwork& network, ExampleData& trainingData, const ActFuncList& actFuncs, LossFunc lossFunc, const LearningRateList& lrList, InitMethod initMethod, size_t epochsToRun, size_t batchSz, ExampleData& testData)
+void train(NNetwork& network, ExampleData& trainingData, const ActFuncList& actFuncs, LossFunc lossFunc, const LearningRateList& lrList, NetNumT momentum, InitMethod initMethod, size_t epochsToRun, size_t batchSz, ExampleData& testData, NetNumT dropOutRate)
 {
     if (!isTrainingDataValid(network.classes(), trainingData, network.getInputs().size()))
     {
@@ -407,8 +434,16 @@ void train(NNetwork& network, ExampleData& trainingData, const ActFuncList& actF
     }
     initialiseWeightsBiases(network, initMethod);
 
+    // prev weight updates for momentum - set to 0 for first update
+    WeightGradients prevWeightDelta(network);
+    LayerGradients prevBiasDelta(network);
+
+    // each epoch
+
     for(size_t epoch = 0; epoch < epochsToRun; ++epoch)
     {
+        auto start = std::chrono::steady_clock::now();
+        // shuffle and then update for each minibatch
         std::shuffle(trainingData.begin(), trainingData.end(), std::default_random_engine(12345));
         for(auto trItemIt = trainingData.begin(); trItemIt < trainingData.end(); trItemIt += batchSz)
         {
@@ -419,10 +454,14 @@ void train(NNetwork& network, ExampleData& trainingData, const ActFuncList& actF
             }
             LayerGradients lGradsOverBatch(network.numLayers());
             WeightGradients wGradsOverBatch(network.numLayers());
-            calculateGradientsOverBatch(network, trItemIt, batchEnd, actFuncs, lossFunc, lGradsOverBatch, wGradsOverBatch);
-            updateNetworkWeightsBiasesWithGradients(network,lGradsOverBatch, wGradsOverBatch, lrList);
+            calculateGradientsOverBatch(network, trItemIt, batchEnd, actFuncs, lossFunc, lGradsOverBatch, wGradsOverBatch, dropOutRate);
+            updateNetworkWeightsBiasesWithGradients(network, lGradsOverBatch, wGradsOverBatch, lrList, momentum, prevBiasDelta, prevWeightDelta);
+
         }
+
+        auto end = std::chrono::steady_clock::now();
         std::cout << "Epoch: " << epoch << std::endl;
+        std::cout << "Time:" << std::chrono::duration <double, std::milli> (end - start).count() << " ms" << std::endl;
         std::cout << " -> Training Data:\n";
         std::cout << "   --> Average Loss: " << std::fixed << calculateLossForExampleData(network, trainingData, actFuncs, lossFunc) << std::endl;
         std::cout << "   --> Accuracy: " << std::fixed << calculateAccuracyForExampleData(network, trainingData, actFuncs) << "%" << std::endl;
@@ -431,5 +470,6 @@ void train(NNetwork& network, ExampleData& trainingData, const ActFuncList& actF
         std::cout << "   --> Average Loss: " << std::fixed << calculateLossForExampleData(network, testData, actFuncs, lossFunc) << std::endl;
         std::cout << "   --> Accuracy: " << std::fixed << calculateAccuracyForExampleData(network, testData, actFuncs) << "%" << std::endl;
         std::cout << "********************\n";
+
     }
 }
