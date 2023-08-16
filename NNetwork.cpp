@@ -3,9 +3,17 @@
 //
 
 #include <iostream>
+#include <fstream>
+#include <random>
+#include <chrono>
+
 
 #include "NNetwork.h"
 #include "NLayer.h"
+#include "Debug.h"
+
+std::default_random_engine gen ( 12345 );
+
 
 NNetwork::NNetwork(size_t inputSz, const ClassList& labels)
 {
@@ -96,22 +104,39 @@ const std::map<ClassT, size_t>& NNetwork::classes() const
     return mOutputClasses;
 }
 
-void NNetwork::feedforward(const ActFuncList& actFuncs)
+void NNetwork::feedforward(const ActFuncList& actFuncs, NetNumT dropOutRate)
 {
+    std::bernoulli_distribution distribution(1 - dropOutRate);
+
     if (actFuncs.size() != numLayers())
     {
         throw std::logic_error("Number of activation functions does not match layers in network");
     }
     for(size_t layerPos = 0 + INPUT_LAYER_OFFSET; layerPos < mNLayer.size(); ++layerPos)
     {
-        const SingleRowT& prevLayerOutput = mNLayer[ layerPos - 1].getOutputs();
+        const SingleRowT& prevLayerOutput = mNLayer[layerPos - 1].getOutputs();
         const Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic>& currentLayerWeights = mNLayer[layerPos].getWeights();
         mNLayer[layerPos].mLayerOutputs = (prevLayerOutput * currentLayerWeights) + mNLayer[layerPos].getBiases();
+
+        if (layerPos < mNLayer.size() - 1) // for every layer except output layer
+        {
+            SingleRowT dropOutMask;
+            dropOutMask.resize(dropOutMask.rows(), mNLayer[layerPos].size());
+            for(size_t maskPos = 0; maskPos < dropOutMask.cols(); ++maskPos)
+            {
+                dropOutMask(0, maskPos) = distribution(gen);
+            }
+            mNLayer[layerPos].mLayerOutputs = mNLayer[layerPos].mLayerOutputs.array() * dropOutMask.array(); // apply scaled mask
+            mNLayer[layerPos].mLayerOutputs = mNLayer[layerPos].mLayerOutputs.array() / (1 - dropOutRate);
+        }
+
         applyActFuncToLayer(mNLayer[layerPos].mLayerOutputs, actFuncs[layerPos - 1]);
+
 
         if (!mNLayer[layerPos].mLayerOutputs.array().allFinite())
         {
-            throw std::logic_error("INF or NaN");
+            //printNetwork(*this);
+            throw std::logic_error("(5) INF or NaN");
         }
     }
 }
@@ -154,7 +179,7 @@ std::ostream& NNetwork::summarise(std::ostream& printer)
         biasCount += layer(layerPos).getOutputs().size();
         weightCount += layer(layerPos).getWeights().rows() * layer(layerPos).getWeights().cols();
     }
-    std::cout << "Bias count: " << biasCount << "\nWeight Count: " << weightCount << std::endl;
+    printer << "Bias count: " << biasCount << "\nWeight Count: " << weightCount << std::endl;
     printer << "*******************" << std::endl;
     printer << "Classes: " << std::endl;
     for(auto classIt = mOutputClasses.begin(); classIt != mOutputClasses.end(); ++classIt)

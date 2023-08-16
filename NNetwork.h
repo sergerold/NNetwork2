@@ -54,7 +54,7 @@ class NNetwork
 
         [[nodiscard]] const std::map<ClassT, size_t>& classes() const;
 
-        void feedforward(const ActFuncList& actFuncs);
+        void feedforward(const ActFuncList& actFuncs, NetNumT dropOutRate);
 
         std::ostream& summarise(std::ostream& printer);
 
