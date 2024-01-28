@@ -42,7 +42,7 @@ class NNetwork
         NNetwork(size_t inputSz, const ClassList& labels);
 
         NLayer& layer(size_t layer);
-        NLayer& outputLayer();
+        NLayer& outputLayer() ;
         [[nodiscard]] size_t numLayers() const;
         [[nodiscard]] NetNumT getOutput(const ClassT&) const;
 

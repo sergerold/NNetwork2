@@ -20,8 +20,8 @@ bool isTrainingDataValid(const std::map<ClassT, size_t>& networkLabels, const Ex
 
 void normaliseTrainingData(ExampleData& trData, DataNormalisationMethod method);
 std::set<std::string> getClasses();
-NetNumT getInputSz();
-ExampleData loadTrainingDataFromFile(std::string fName);
+Eigen::Index getInputSz();
+ExampleData loadTrainingDataFromFile(const std::string &fName);
 
 bool serialise(std::ofstream& fileOut, NNetwork& network, const ActFuncList& actFuncList);
 NNetwork deserialise(std::ifstream& fileIn, ActFuncList& actFuncList);

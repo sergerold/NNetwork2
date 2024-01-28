@@ -42,7 +42,7 @@ void printLayerGradients(const LayerGradients& lGrads)
 
 void printOutputs(const NNetwork& network)
 {
-    for(const auto c : network.classes())
+    for(const auto& c : network.classes())
     {
         std::cout << c.first << ": " << network.getOutput(c.first) << std::endl;
     }

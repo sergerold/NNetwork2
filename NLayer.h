@@ -34,7 +34,7 @@ class NLayer
         const LayerWeightsT& getWeights();
         void setWeights(const LayerWeightsT& weights);
 
-        size_t size();
+        size_t size() const;
 
         friend class NNetwork;
 };

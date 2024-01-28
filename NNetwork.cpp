@@ -10,7 +10,7 @@
 
 #include "NNetwork.h"
 #include "NLayer.h"
-#include "Debug.h"
+//#include "Debug.h"
 
 std::default_random_engine gen ( 12345 );
 
@@ -19,7 +19,7 @@ NNetwork::NNetwork(size_t inputSz, const ClassList& labels)
 {
     // add input layer
     NLayer inputLayer(inputSz, 0);
-    inputLayer.mLayerOutputs.resize(1, Eigen::Index (inputSz));
+    inputLayer.mLayerOutputs.resize(1, static_cast<Eigen::Index> (inputSz));
     mNLayer.push_back(inputLayer);
 
     // add output layer
@@ -29,7 +29,7 @@ NNetwork::NNetwork(size_t inputSz, const ClassList& labels)
     // add output classes
     for(size_t lPos = 0; lPos < labels.size(); ++ lPos)
     {
-        mOutputClasses.emplace(*std::next(labels.begin(), Eigen::Index(lPos)), lPos);
+        mOutputClasses.emplace(*std::next(labels.begin(), static_cast<Eigen::Index>(lPos)), lPos);
     }
 }
 
@@ -67,8 +67,8 @@ bool NNetwork::addLayer(size_t layerSz, size_t insertLayerBefore)
     {
         return false;
     }
-    auto newLayerPos = mNLayer.insert(mNLayer.begin() + Eigen::Index (INPUT_LAYER_OFFSET + insertLayerBefore), NLayer(layerSz, 0));
-    auto prevLayerPos = newLayerPos - 1, nextLayerPos = newLayerPos + 1;
+    const auto newLayerPos = mNLayer.insert(mNLayer.begin() + static_cast<Eigen::Index> (INPUT_LAYER_OFFSET + insertLayerBefore), NLayer(layerSz, 0));
+    const auto prevLayerPos = newLayerPos - 1, nextLayerPos = newLayerPos + 1;
     newLayerPos->resizeNumWeightsPerNeuron(prevLayerPos->size());
     nextLayerPos->resizeNumWeightsPerNeuron(newLayerPos->size());
     return true;
@@ -77,15 +77,14 @@ bool NNetwork::addLayer(size_t layerSz, size_t insertLayerBefore)
 void NNetwork::changeLayerSz(size_t layerPos, size_t newLayerSz)
 {
     layer(layerPos).resizeLayer(newLayerSz);
-    auto nextLayer = mNLayer.begin() + Eigen::Index (INPUT_LAYER_OFFSET + layerPos + 1);
+    const auto nextLayer = mNLayer.begin() + static_cast<Eigen::Index> (INPUT_LAYER_OFFSET + layerPos + 1);
     if (nextLayer != mNLayer.end())
     {
         nextLayer->resizeNumWeightsPerNeuron(newLayerSz);
     }
 }
 
-NLayer& NNetwork::outputLayer()
-{
+NLayer& NNetwork::outputLayer()  {
     return *(mNLayer.end() - 1);
 }
 
@@ -95,8 +94,8 @@ NetNumT NNetwork::getOutput(const ClassT& c) const
     {
         throw std::out_of_range("No such class");
     }
-    size_t outputPos = mOutputClasses.at(c);
-    return mNLayer[mNLayer.size() - 1].getOutputs()[Eigen::Index (outputPos)];
+    const size_t outputPos = mOutputClasses.at(c);
+    return mNLayer[mNLayer.size() - 1].getOutputs()[static_cast<Eigen::Index> (outputPos)];
 }
 
 const std::map<ClassT, size_t>& NNetwork::classes() const
@@ -107,60 +106,74 @@ const std::map<ClassT, size_t>& NNetwork::classes() const
 void NNetwork::feedforward(const ActFuncList& actFuncs, NetNumT dropOutRate)
 {
     std::bernoulli_distribution distribution(1 - dropOutRate);
-
     if (actFuncs.size() != numLayers())
     {
         throw std::logic_error("Number of activation functions does not match layers in network");
     }
+
+    // Find the maximum layer size for dropout mask pre-allocation
+    Eigen::Index maxSize = 0;
+    for (const auto& layer : mNLayer)
+    {
+        maxSize = std::max(maxSize, static_cast<Eigen::Index>(layer.size()));
+    }
+    SingleRowT dropOutMask(1, maxSize);
+
     for(size_t layerPos = 0 + INPUT_LAYER_OFFSET; layerPos < mNLayer.size(); ++layerPos)
     {
+        auto& layer = mNLayer[layerPos];
         const SingleRowT& prevLayerOutput = mNLayer[layerPos - 1].getOutputs();
-        const Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic>& currentLayerWeights = mNLayer[layerPos].getWeights();
-        mNLayer[layerPos].mLayerOutputs = (prevLayerOutput * currentLayerWeights) + mNLayer[layerPos].getBiases();
+        layer.mLayerOutputs.noalias() = (prevLayerOutput * layer.getWeights()).rowwise() + layer.getBiases().row(0);
 
-        if (layerPos < mNLayer.size() - 1) // for every layer except output layer
+        if (layerPos < mNLayer.size() - 1) // Except the output layer
         {
-            SingleRowT dropOutMask;
-            dropOutMask.resize(dropOutMask.rows(), mNLayer[layerPos].size());
-            for(size_t maskPos = 0; maskPos < dropOutMask.cols(); ++maskPos)
+            dropOutMask.leftCols(layer.size()).setZero();
+            for(Eigen::Index maskPos = 0; maskPos < layer.size(); ++maskPos)
             {
                 dropOutMask(0, maskPos) = distribution(gen);
             }
-            mNLayer[layerPos].mLayerOutputs = mNLayer[layerPos].mLayerOutputs.array() * dropOutMask.array(); // apply scaled mask
-            mNLayer[layerPos].mLayerOutputs = mNLayer[layerPos].mLayerOutputs.array() / (1 - dropOutRate);
+            layer.mLayerOutputs.array() *= dropOutMask.leftCols(layer.size()).array();
+            layer.mLayerOutputs.array() /= (1 - dropOutRate);
         }
 
-        applyActFuncToLayer(mNLayer[layerPos].mLayerOutputs, actFuncs[layerPos - 1]);
+        applyActFuncToLayer(layer.mLayerOutputs, actFuncs[layerPos - 1]);
 
-
-        if (!mNLayer[layerPos].mLayerOutputs.array().allFinite())
+        if (!layer.mLayerOutputs.allFinite())
         {
-            //printNetwork(*this);
             throw std::logic_error("(5) INF or NaN");
         }
     }
 }
 
+
 void NNetwork::applyActFuncToLayer(SingleRowT& netInputs, ActFunc actFunc)
 {
-    if (actFunc == ActFunc::SIGMOID)
-    {
-        netInputs = netInputs.unaryExpr([](NetNumT input) -> NetNumT {return  1/(1 + exp( -input));});
-    }
-    if (actFunc == ActFunc::RELU)
-    {
-        netInputs = netInputs.unaryExpr([](NetNumT input) ->NetNumT {return fmax(0, input);});
-    }
-    if (actFunc == ActFunc::SOFTMAX)
-    {
-        // compute normalised e^x
-        auto inputsAsNormExp = (netInputs.array() - netInputs.maxCoeff()).exp();
-        double expSum = inputsAsNormExp.sum();
-        if(expSum == 0)
-        {
-            throw std::logic_error("Cannot compute softmax if outputs all 0");
+
+    switch (actFunc) {
+        case ActFunc::SIGMOID: {
+            netInputs = netInputs.unaryExpr([](NetNumT input) -> NetNumT {return static_cast<NetNumT> ( 1/(1 + exp( -input)) );});
+            break;
         }
-        netInputs = inputsAsNormExp.unaryExpr([&](NetNumT input) ->NetNumT {return input / expSum;});
+
+        case ActFunc::RELU: {
+            netInputs = netInputs.unaryExpr([](NetNumT input) ->NetNumT {return static_cast<NetNumT> (fmax(0, input) );});
+            break;
+        }
+
+        case ActFunc::SOFTMAX: {
+            // compute normalised e^x
+            const auto inputsAsNormExp = (netInputs.array() - netInputs.maxCoeff()).exp();
+            const double expSum = inputsAsNormExp.sum();
+            if(expSum == 0)
+            {
+                throw std::logic_error("Cannot compute softmax if outputs all 0");
+            }
+            netInputs = inputsAsNormExp.unaryExpr([&](NetNumT input) ->NetNumT {return static_cast<NetNumT> (input / expSum) ;});
+            break;
+        }
+
+        default:
+            throw std::runtime_error("Unsupported activation function");
     }
 }
 
@@ -182,9 +195,9 @@ std::ostream& NNetwork::summarise(std::ostream& printer)
     printer << "Bias count: " << biasCount << "\nWeight Count: " << weightCount << std::endl;
     printer << "*******************" << std::endl;
     printer << "Classes: " << std::endl;
-    for(auto classIt = mOutputClasses.begin(); classIt != mOutputClasses.end(); ++classIt)
+    for(auto & mOutputClasse : mOutputClasses)
     {
-        printer << "--> \"" << classIt->first << "\"" << std::endl;
+        printer << "--> \"" << mOutputClasse.first << "\"" << std::endl;
     }
     return printer;
 }

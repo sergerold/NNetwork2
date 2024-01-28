@@ -17,11 +17,11 @@ int main()
     Eigen::setNbThreads(4);
 
     // Data
-    ExampleData trainingData = loadTrainingDataFromFile("C:\\Users\\Lenovo\\Documents\\dev\\NNetwork2\\TrainingData\\mnist_train.csv");
+    ExampleData trainingData = loadTrainingDataFromFile("../TrainingData/mnist_train_3.csv");
     normaliseTrainingData(trainingData, DataNormalisationMethod::Z_SCORE);
 
 
-    ExampleData testData = loadTrainingDataFromFile("C:\\Users\\Lenovo\\Documents\\dev\\NNetwork2\\TrainingData\\mnist_test.csv");
+    ExampleData testData = loadTrainingDataFromFile("../TrainingData/mnist_test.csv");
     normaliseTrainingData(testData, DataNormalisationMethod::Z_SCORE);
 
 
@@ -37,14 +37,16 @@ int main()
     LearningRateList lRList = {0.01, 0.01, 0.01};
     ActFuncList actFuncs = ActFuncList{ ActFunc::RELU, ActFunc::RELU,  ActFunc::SOFTMAX };
     LossFunc lossFunc = LossFunc::CROSS_ENTROPY;
-    InitMethod initMethod = InitMethod::NORMALISED_HE;
-    size_t epochs = 1000;
-    size_t batchSz = 8;
+    InitMethod initMethod = InitMethod::UNIFORM_HE;
+    size_t epochs = 16;
+    size_t batchSz = 16;
     NetNumT momentum = 0;
     NetNumT dropOutRate = 0.2;
 
     // Train
     train(network, trainingData, actFuncs, lossFunc, lRList, momentum, initMethod, epochs, batchSz, testData, dropOutRate);
 
+    std::ofstream fOut ("../model.dat");
+    serialise(fOut, network, actFuncs);
 
 }

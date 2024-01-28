@@ -13,12 +13,12 @@ bool isTrainingDataValid(const std::map<ClassT, size_t>& networkLabels, const Ex
     for(const auto& item : trainingData)
     {
         const Labels& targets = item.labels;
-        if (targets.size() != networkLabels.size())
+        if (static_cast<decltype(networkLabels.size())>(targets.size()) != networkLabels.size())
         {
             std::cout << targets.size() << ", " << networkLabels.size() << std::endl;
             return false;
         }
-        if (item.inputs.size() != networkInputSz)
+        if (static_cast<decltype(networkInputSz)>(item.inputs.size()) != networkInputSz)
         {
             std::cout << "FAIL 2" << std::endl;
             return false;
@@ -31,10 +31,10 @@ SingleRowT trainingItemToVector(const std::map<ClassT, NetNumT>& trItem)
 {
     size_t count = 0;
     SingleRowT targetValuesAsVector;
-    targetValuesAsVector.resize(Eigen::Index(trItem.size()));
+    targetValuesAsVector.resize(static_cast<Eigen::Index>(trItem.size()));
     for(auto & it : trItem)
     {
-        targetValuesAsVector(0, Eigen::Index (count) ) = it.second;
+        targetValuesAsVector(0, static_cast<Eigen::Index> (count) ) = it.second;
         count++;
     }
     return targetValuesAsVector;
@@ -42,7 +42,7 @@ SingleRowT trainingItemToVector(const std::map<ClassT, NetNumT>& trItem)
 
 bool areInputElementsDifferent(const Eigen::Matrix<INPUT_TYPE, Eigen::Dynamic, Eigen::Dynamic>& inputElements)
 {
-    NetNumT firstInput = inputElements.coeff(0, 0);
+    const NetNumT firstInput = inputElements.coeff(0, 0);
     for(Eigen::Index row = 0; row < inputElements.rows(); ++row)
     {
         for(Eigen::Index col = 0; col < inputElements.cols(); ++col)
@@ -60,38 +60,38 @@ void normaliseTrainingData(ExampleData& trData, DataNormalisationMethod method)
 {
     // convert inputs in trData to matrix - every col is a list of an input element over every training item
     Eigen::Matrix<INPUT_TYPE, Eigen::Dynamic, Eigen::Dynamic> inputsAsMatrix;
-    inputsAsMatrix.resize(Eigen::Index(trData.size()), Eigen::Index(trData[0].inputs.size()));
+    inputsAsMatrix.resize(static_cast<Eigen::Index>(trData.size()), static_cast<Eigen::Index>(trData[0].inputs.size()));
     for(size_t pos = 0; pos < trData.size(); ++pos)
     {
-        inputsAsMatrix.row(Eigen::Index(pos)) = trData[pos].inputs;
+        inputsAsMatrix.row(static_cast<Eigen::Index>(pos)) = trData[pos].inputs;
     }
     // normalise
     if(method == DataNormalisationMethod::Z_SCORE)
     {
         // iterate over each set of inputElements in trData
-        for(size_t inputElement = 0; inputElement < trData[0].inputs.size(); ++inputElement)
+        for(size_t inputElement = 0; inputElement < static_cast<decltype(inputElement)>( trData[0].inputs.size()); ++inputElement)
         {
-            Eigen::Matrix<INPUT_TYPE, 1, Eigen::Dynamic> inputElementAcrossItems = inputsAsMatrix.col(Eigen::Index(inputElement));
+            Eigen::Matrix<INPUT_TYPE, 1, Eigen::Dynamic> inputElementAcrossItems = inputsAsMatrix.col(static_cast<Eigen::Index>(inputElement));
             // no valid z score if all elements same so do not amend
             if(!areInputElementsDifferent(inputElementAcrossItems))
             {
                 continue;
             }
             NetNumT mean = inputElementAcrossItems.array().mean();
-            NetNumT sd = sqrt ( (inputElementAcrossItems.array() - mean).pow(2).sum() /
-                                NetNumT (inputElementAcrossItems.size()) );
+            NetNumT sd = static_cast<NetNumT> (sqrt ( (inputElementAcrossItems.array() - mean).pow(2).sum() /
+                                NetNumT (inputElementAcrossItems.size())) );
 
             inputElementAcrossItems = (inputElementAcrossItems.array() - mean) / sd;
-            inputsAsMatrix.col(Eigen::Index(inputElement)) = inputElementAcrossItems;
+            inputsAsMatrix.col(static_cast<Eigen::Index>(inputElement)) = inputElementAcrossItems;
         }
     }
     if(method == DataNormalisationMethod::MINMAX)
     {
-        for(size_t inputElement = 0; inputElement < trData[0].inputs.size(); ++inputElement)
+        for(size_t inputElement = 0; inputElement < static_cast<decltype(inputElement)> (trData[0].inputs.size()); ++inputElement)
         {
-            auto inputElementAcrossItems = inputsAsMatrix.col(Eigen::Index(inputElement));
-            NetNumT maxInputValue = inputElementAcrossItems.array().maxCoeff();
-            NetNumT minInputValue = inputElementAcrossItems.array().minCoeff();
+            auto inputElementAcrossItems = inputsAsMatrix.col(static_cast<Eigen::Index>(inputElement));
+            const NetNumT maxInputValue = inputElementAcrossItems.array().maxCoeff();
+            const NetNumT minInputValue = inputElementAcrossItems.array().minCoeff();
 
             // DO NOT NORMALISE IF VALUES ALL SAME (DIVIDING BY 0 GIVES ERROR)
             if(minInputValue == maxInputValue)
@@ -100,7 +100,7 @@ void normaliseTrainingData(ExampleData& trData, DataNormalisationMethod method)
             }
 
             inputElementAcrossItems = (inputElementAcrossItems.array() - minInputValue) / (maxInputValue - minInputValue);
-            inputsAsMatrix.col(Eigen::Index(inputElement)) = inputElementAcrossItems;
+            inputsAsMatrix.col(static_cast<Eigen::Index>(inputElement)) = inputElementAcrossItems;
         }
     }
     if(method == DataNormalisationMethod::LOG)
@@ -124,7 +124,7 @@ void normaliseTrainingData(ExampleData& trData, DataNormalisationMethod method)
         throw std::logic_error("(4) INF or NaN in inputs");
     }
     // put data back in trData
-    for(Eigen::Index trItemPos = 0; trItemPos < trData.size(); ++trItemPos)
+    for(Eigen::Index trItemPos = 0; static_cast<decltype(trData.size())>(trItemPos) < trData.size(); ++trItemPos)
     {
         trData[trItemPos].inputs = inputsAsMatrix.row(trItemPos);
     }
@@ -135,12 +135,12 @@ std::set<std::string> getClasses()
     return ClassList{CLASSES};
 }
 
-NetNumT getInputSz()
+Eigen::Index getInputSz()
 {
     return INPUT_SZ;
 }
 
-ExampleData loadTrainingDataFromFile(std::string fName)
+ExampleData loadTrainingDataFromFile(const std::string &fName)
 {
     ExampleData trData;
     std::ifstream dataFile;
@@ -166,9 +166,9 @@ ExampleData loadTrainingDataFromFile(std::string fName)
 
         ClassList classes = getClasses();
         std::map<ClassT, NetNumT> labels;
-        for(auto it = classes.begin(); it != classes.end(); ++it)
+        for(const auto & classe : classes)
         {
-            labels[*it] = 0;
+            labels[classe] = 0;
         }
         labels[targetNum] = 1;
 
@@ -182,8 +182,8 @@ ExampleData loadTrainingDataFromFile(std::string fName)
         {
             inputAsStr = lineOfFile.substr(0, pos);
             lineOfFile.erase(0, pos + delimiter.length());
-            NetNumT inputAsNum = std::stod(inputAsStr);
-            trItem.inputs.row(0).col(Eigen::Index (inputCount)) << inputAsNum;
+            auto inputAsNum = static_cast<NetNumT> (std::stod(inputAsStr));
+            trItem.inputs.row(0).col(static_cast<Eigen::Index> (inputCount)) << inputAsNum;
             inputCount++;
         }
         trData.push_back(trItem);
@@ -228,23 +228,23 @@ bool serialise(std::ofstream& fileOut, NNetwork& network, const ActFuncList& act
 
 Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic> generateVectorRow(const std::string& str)
 {
-    size_t vecSize = std::count(str.begin(), str.end(), DELIMITER) + 1;
+    const Eigen::Index vecSize = std::count(str.begin(), str.end(), DELIMITER) + 1;
     Eigen::Matrix<NetNumT, 1, Eigen::Dynamic> vecToReturn;
     vecToReturn.resize(vecSize);
 
     std::stringstream sstream(str);
     std::string buf;
-    size_t i =0;
+    Eigen::Index i =0;
     while (std::getline(sstream, buf, DELIMITER))
     {
-        NetNumT coeff = std::stod(buf);
+        const auto coeff = static_cast<NetNumT>(std::stod(buf));
         vecToReturn(0, i) = coeff;
         i++;
     }
     return vecToReturn;
 }
 
-Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic> generateMatrix(std::ifstream& fileIn, size_t weightsR, size_t weightsC)
+Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic> generateMatrix(std::ifstream& fileIn, Eigen::Index weightsR, Eigen::Index weightsC)
 {
     std::string weightAsStr, buf;
     size_t line = 0;
@@ -259,10 +259,10 @@ Eigen::Matrix<NetNumT, Eigen::Dynamic, Eigen::Dynamic> generateMatrix(std::ifstr
     weightsToReturn.resize(weightsR, weightsC);
 
     std::stringstream sstream(weightAsStr);
-    size_t pos = 0;
+    Eigen::Index pos = 0;
     while(std::getline(sstream, buf, DELIMITER))
     {
-        NetNumT coeff = std::stod(buf);
+        const auto coeff = static_cast<NetNumT>(std::stod(buf));
 
         weightsToReturn(pos/weightsC, pos % weightsC) = coeff;
         ++pos;
@@ -354,7 +354,7 @@ NNetwork deserialise(std::ifstream& fileIn, ActFuncList& actFuncList)
     {
         sstream.clear();
         sstream << buf;
-        size_t weightRows, weightCols;
+        Eigen::Index weightRows, weightCols;
 
         std::getline(sstream, buf, ',');
         weightRows = stoi(buf);

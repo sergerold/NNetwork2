@@ -78,7 +78,7 @@ void initialiseWeightsBiases(NNetwork& network, InitMethod method);
 NetNumT calculateLossForExampleItem(const Labels& labels, LossFunc lossFunc, const SingleRowT& networkOut);
 NetNumT calculateLossForExampleData(NNetwork& network, const ExampleData& trData, const ActFuncList& actFuncs, LossFunc lossFunc);
 
-NetNumT calculateAccuracyForExampleData(NNetwork& network, const ExampleData& data, ActFuncList actFuncList);
+NetNumT calculateAccuracyForExampleData(NNetwork& network, const ExampleData& data, const ActFuncList &actFuncList);
 
 // Gradient calculation
 
@@ -88,11 +88,11 @@ SingleRowT calculateOutputLayerGradientsForTrainingItem(const NLayer& outputLaye
 void calculateHiddenLayerGradientsForTrainingItem(NNetwork& network, const ActFuncList& actFuncs, LayerGradients& layerGrads);
 void calculateWeightGradientsForTrainingItem(NNetwork& network, const LayerGradients& layerGrads, WeightGradients& weightGrads);
 
-void calculateGradientsForTrainingItem(NNetwork& network, const ActFuncList& actFuncs, LossFunc lossFunc, ExampleItem& trItem, LayerGradients& layerGrads, WeightGradients& weightGrads, NetNumT dropOutRate);
+void calculateGradientsForTrainingItem(NNetwork& network, const ActFuncList& actFuncs, LossFunc lossFunc, const ExampleItem& trItem, LayerGradients& layerGrads, WeightGradients& weightGrads, NetNumT dropOutRate);
 void calculateGradientsOverBatch(NNetwork& network, ExampleData::iterator batchStart, ExampleData::iterator batchEnd, const ActFuncList& actFuncs, LossFunc lossFunc, LayerGradients& layerGrads, WeightGradients& weightGrads, NetNumT dropOutRate);
 
 // TRAIN
 void updateNetworkWeightsBiasesWithGradients(NNetwork& network, const LayerGradients& layerGrads, const WeightGradients& weightGrads, const LearningRateList& learningRatesPerLayer, NetNumT momentumFactor, LayerGradients& prevUpdateBiasDelta, WeightGradients& prevUpdateWeightDelta);
-void train(NNetwork& network, ExampleData& trainingData, const ActFuncList& actFuncs, LossFunc lossFunc, const LearningRateList& lrList, NetNumT momentum, InitMethod initMethod, size_t epochsToRun, size_t batchSz, ExampleData& testData, NetNumT dropOutRate);
+void train(NNetwork& network, ExampleData& trainingData, const ActFuncList& actFuncs, LossFunc lossFunc, const LearningRateList& lrList, NetNumT momentum, InitMethod initMethod, size_t epochsToRun, size_t batchSz, const ExampleData& testData, NetNumT dropOutRate);
 
 #endif //NNETWORK2_TRAINING_H
