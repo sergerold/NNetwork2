@@ -123,9 +123,10 @@ void NNetwork::feedforward(const ActFuncList& actFuncs, NetNumT dropOutRate)
     {
         auto& layer = mNLayer[layerPos];
         const SingleRowT& prevLayerOutput = mNLayer[layerPos - 1].getOutputs();
-        layer.mLayerOutputs.noalias() = (prevLayerOutput * layer.getWeights()).rowwise() + layer.getBiases().row(0);
+        layer.mLayerOutputs.noalias() = (prevLayerOutput * layer.getWeights()) ;
+        layer.mLayerOutputs.noalias() += layer.getBiases().row(0);
 
-        if (layerPos < mNLayer.size() - 1) // Except the output layer
+        if (layerPos < mNLayer.size() - 1 && dropOutRate > 0) // Except the output layer
         {
             dropOutMask.leftCols(layer.size()).setZero();
             for(Eigen::Index maskPos = 0; maskPos < layer.size(); ++maskPos)
@@ -151,24 +152,25 @@ void NNetwork::applyActFuncToLayer(SingleRowT& netInputs, ActFunc actFunc)
 
     switch (actFunc) {
         case ActFunc::SIGMOID: {
-            netInputs = netInputs.unaryExpr([](NetNumT input) -> NetNumT {return static_cast<NetNumT> ( 1/(1 + exp( -input)) );});
+            netInputs = 1.0 / (1.0 + (-netInputs.array()).exp());
             break;
         }
 
         case ActFunc::RELU: {
-            netInputs = netInputs.unaryExpr([](NetNumT input) ->NetNumT {return static_cast<NetNumT> (fmax(0, input) );});
+            netInputs = netInputs.cwiseMax(0);
             break;
         }
 
         case ActFunc::SOFTMAX: {
             // compute normalised e^x
-            const auto inputsAsNormExp = (netInputs.array() - netInputs.maxCoeff()).exp();
+            const auto maxCoeff = netInputs.maxCoeff();
+            const auto inputsAsNormExp = (netInputs.array() - maxCoeff).exp();
             const double expSum = inputsAsNormExp.sum();
             if(expSum == 0)
             {
                 throw std::logic_error("Cannot compute softmax if outputs all 0");
             }
-            netInputs = inputsAsNormExp.unaryExpr([&](NetNumT input) ->NetNumT {return static_cast<NetNumT> (input / expSum) ;});
+            netInputs = inputsAsNormExp / expSum ;
             break;
         }
 

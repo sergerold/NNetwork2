@@ -12,7 +12,6 @@
 
 int main()
 {
-    Eigen::initParallel();
     omp_set_num_threads(4);
     Eigen::setNbThreads(4);
 
@@ -23,7 +22,6 @@ int main()
 
     ExampleData testData = loadTrainingDataFromFile("../TrainingData/mnist_test.csv");
     normaliseTrainingData(testData, DataNormalisationMethod::Z_SCORE);
-
 
     // Network setup
     ClassList classes = getClasses();
@@ -41,12 +39,11 @@ int main()
     size_t epochs = 16;
     size_t batchSz = 16;
     NetNumT momentum = 0;
-    NetNumT dropOutRate = 0.2;
+    NetNumT dropOutRate = 0;
 
     // Train
     train(network, trainingData, actFuncs, lossFunc, lRList, momentum, initMethod, epochs, batchSz, testData, dropOutRate);
 
-    std::ofstream fOut ("../model.dat");
-    serialise(fOut, network, actFuncs);
-
+    //std::ofstream fOut ("../model.dat");
+    //serialise(fOut, network, actFuncs);
 }

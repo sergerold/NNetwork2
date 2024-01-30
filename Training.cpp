@@ -274,7 +274,7 @@ SingleRowT calculateActivationFunctionGradients(const NLayer& layer, ActFunc act
     else if(actFunc == ActFunc::RELU)
     {
         // Heaviside step function (derivative undefined at input 0 so set at 0)
-        return layer.getOutputs().array().unaryExpr([](NetNumT num){return static_cast<NetNumT> (num > 0);} );
+        return (layer.getOutputs().array() > 0).template cast<NetNumT>();
     }
     // no softmax derivative as always combined with cross entropy loss
     else {
@@ -456,7 +456,7 @@ void train(NNetwork& network, ExampleData& trainingData, const ActFuncList& actF
     {
         auto start = std::chrono::steady_clock::now();
 
-        // shuffle and then update for each minibatch
+        // random shuffle and then update for each minibatch
         std::shuffle(trainingData.begin(), trainingData.end(), std::default_random_engine(12345));
         for(auto trItemIt = trainingData.begin(); trItemIt < trainingData.end(); trItemIt += static_cast<std::vector<ExampleItem>::difference_type>(batchSz))
         {
@@ -472,8 +472,11 @@ void train(NNetwork& network, ExampleData& trainingData, const ActFuncList& actF
         }
 
         auto end = std::chrono::steady_clock::now();
+
+        // Print
+
         std::cout << "Epoch: " << epoch << std::endl;
-        std::cout << "Time:" << std::chrono::duration <double, std::milli> (end - start).count() << " ms" << std::endl;
+        std::cout << "Time: " << std::chrono::duration <double, std::milli> (end - start).count() << " ms" << std::endl;
         std::cout << " -> Training Data (" << trainingData.size() << " items):\n";
         std::cout << "   --> Average Loss: " << std::fixed << calculateLossForExampleData(network, trainingData, actFuncs, lossFunc) << std::endl;
         std::cout << "   --> Accuracy: " << std::fixed << calculateAccuracyForExampleData(network, trainingData, actFuncs) << "%" << std::endl;
