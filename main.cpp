@@ -8,7 +8,6 @@
 #include "NNetwork.h"
 #include "Training.h"
 #include "Data.h"
-#include "Debug.h"
 
 int main()
 {
@@ -36,7 +35,7 @@ int main()
     ActFuncList actFuncs = ActFuncList{ ActFunc::RELU, ActFunc::RELU,  ActFunc::SOFTMAX };
     LossFunc lossFunc = LossFunc::CROSS_ENTROPY;
     InitMethod initMethod = InitMethod::UNIFORM_HE;
-    size_t epochs = 16;
+    size_t epochs = 10;
     size_t batchSz = 16;
     NetNumT momentum = 0;
     NetNumT dropOutRate = 0;
