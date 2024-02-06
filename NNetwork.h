@@ -17,7 +17,7 @@
 
 using ClassT = std::string;
 using ClassList = std::set<ClassT>;
-using InputList = Eigen::Matrix<INPUT_TYPE, 1, Eigen::Dynamic>;
+using InputList = Eigen::Matrix<NUM_TYPE, 1, Eigen::Dynamic>;
 
 enum class ActFunc
 {
