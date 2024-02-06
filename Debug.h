@@ -9,8 +9,8 @@
 #include "Training.h"
 
 void printNetwork(NNetwork& network);
-void printWeightGradients(const WeightGradients& wGrads);
-void printLayerGradients(const LayerGradients& lGrads);
+void printWeightGradients(const NetworkWeightGradients& wGrads);
+void printLayerGradients(const NetworkLayerGradients& lGrads);
 
 void printOutputs(const NNetwork& network);
 
