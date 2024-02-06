@@ -40,7 +40,7 @@ SingleRowT trainingItemToVector(const std::map<ClassT, NetNumT>& trItem)
     return targetValuesAsVector;
 }
 
-bool areInputElementsDifferent(const Eigen::Matrix<INPUT_TYPE, Eigen::Dynamic, Eigen::Dynamic>& inputElements)
+bool areInputElementsDifferent(const Eigen::Matrix<NUM_TYPE, Eigen::Dynamic, Eigen::Dynamic>& inputElements)
 {
     const NetNumT firstInput = inputElements.coeff(0, 0);
     for(Eigen::Index row = 0; row < inputElements.rows(); ++row)
@@ -59,7 +59,7 @@ bool areInputElementsDifferent(const Eigen::Matrix<INPUT_TYPE, Eigen::Dynamic, E
 void normaliseTrainingData(ExampleData& trData, DataNormalisationMethod method)
 {
     // convert inputs in trData to matrix - every col is a list of an input element over every training item
-    Eigen::Matrix<INPUT_TYPE, Eigen::Dynamic, Eigen::Dynamic> inputsAsMatrix;
+    Eigen::Matrix<NUM_TYPE, Eigen::Dynamic, Eigen::Dynamic> inputsAsMatrix;
     inputsAsMatrix.resize(static_cast<Eigen::Index>(trData.size()), static_cast<Eigen::Index>(trData[0].inputs.size()));
     for(size_t pos = 0; pos < trData.size(); ++pos)
     {
@@ -71,7 +71,7 @@ void normaliseTrainingData(ExampleData& trData, DataNormalisationMethod method)
         // iterate over each set of inputElements in trData
         for(size_t inputElement = 0; inputElement < static_cast<decltype(inputElement)>( trData[0].inputs.size()); ++inputElement)
         {
-            Eigen::Matrix<INPUT_TYPE, 1, Eigen::Dynamic> inputElementAcrossItems = inputsAsMatrix.col(static_cast<Eigen::Index>(inputElement));
+            Eigen::Matrix<NUM_TYPE, 1, Eigen::Dynamic> inputElementAcrossItems = inputsAsMatrix.col(static_cast<Eigen::Index>(inputElement));
             // no valid z score if all elements same so do not amend
             if(!areInputElementsDifferent(inputElementAcrossItems))
             {
