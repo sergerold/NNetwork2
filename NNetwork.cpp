@@ -6,7 +6,7 @@
 #include <fstream>
 #include <random>
 #include <chrono>
-
+#include <cmath>
 
 #include "NNetwork.h"
 #include "NLayer.h"
@@ -119,13 +119,14 @@ void NNetwork::feedforward(const ActFuncList& actFuncs, NetNumT dropOutRate)
     }
     SingleRowT dropOutMask(1, maxSize);
 
+    // starting at the first hidden layer and then moving to the output layer...
     for(size_t layerPos = 0 + INPUT_LAYER_OFFSET; layerPos < mNLayer.size(); ++layerPos)
     {
-        auto& layer = mNLayer[layerPos];
-        const SingleRowT& prevLayerOutput = mNLayer[layerPos - 1].getOutputs();
-        layer.mLayerOutputs.noalias() = (prevLayerOutput * layer.getWeights()) ;
-        layer.mLayerOutputs.noalias() += layer.getBiases().row(0);
+        auto& layer = mNLayer[layerPos]; // current layer
+        const SingleRowT& prevLayerOutput = mNLayer[layerPos - 1].getOutputs(); // outputs from previous layer
+        layer.mLayerOutputs.noalias() = (prevLayerOutput * layer.getWeights()) +  layer.getBiases().row(0); // calculate matrix multiplication and add biases
 
+        // apply drop out
         if (layerPos < mNLayer.size() - 1 && dropOutRate > 0) // Except the output layer
         {
             dropOutMask.leftCols(layer.size()).setZero();
@@ -136,7 +137,7 @@ void NNetwork::feedforward(const ActFuncList& actFuncs, NetNumT dropOutRate)
             layer.mLayerOutputs.array() *= dropOutMask.leftCols(layer.size()).array();
             layer.mLayerOutputs.array() /= (1 - dropOutRate);
         }
-
+        // apply activation function
         applyActFuncToLayer(layer.mLayerOutputs, actFuncs[layerPos - 1]);
 
         if (!layer.mLayerOutputs.allFinite())
@@ -146,9 +147,11 @@ void NNetwork::feedforward(const ActFuncList& actFuncs, NetNumT dropOutRate)
     }
 }
 
-
 void NNetwork::applyActFuncToLayer(SingleRowT& netInputs, ActFunc actFunc)
 {
+    if (netInputs.size() < 1) {
+        throw std::logic_error("Size of netinputs is 0");
+    }
 
     switch (actFunc) {
         case ActFunc::SIGMOID: {
@@ -164,12 +167,11 @@ void NNetwork::applyActFuncToLayer(SingleRowT& netInputs, ActFunc actFunc)
         case ActFunc::SOFTMAX: {
             // compute normalised e^x
             const auto maxCoeff = netInputs.maxCoeff();
+            if (std::isnan(maxCoeff) || std::isinf(maxCoeff)) {
+                throw std::logic_error("Max coefficient is NaN or INF");
+            }
             const auto inputsAsNormExp = (netInputs.array() - maxCoeff).exp();
             const double expSum = inputsAsNormExp.sum();
-            if(expSum == 0)
-            {
-                throw std::logic_error("Cannot compute softmax if outputs all 0");
-            }
             netInputs = inputsAsNormExp / expSum ;
             break;
         }
