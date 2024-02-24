@@ -1,13 +1,12 @@
-#include <iostream>
 #include <fstream>
-#include <iomanip>
+#include <iostream>
 #include <omp.h>
-
-#include "Eigen/Dense"
 
 #include "NNetwork.h"
 #include "Training.h"
 #include "Data.h"
+
+
 
 int main()
 {
@@ -15,9 +14,10 @@ int main()
     Eigen::setNbThreads(4);
 
     // Data
+    std::cout << "Loading and normalising data...\n \n";
+
     ExampleData trainingData = loadTrainingDataFromFile("../TrainingData/mnist_train_3.csv");
     normaliseTrainingData(trainingData, DataNormalisationMethod::Z_SCORE);
-
 
     ExampleData testData = loadTrainingDataFromFile("../TrainingData/mnist_test.csv");
     normaliseTrainingData(testData, DataNormalisationMethod::Z_SCORE);
@@ -29,6 +29,9 @@ int main()
     NNetwork network(inputSz, classes);
     network.addLayer(128, 0);
     network.addLayer(64, 1);
+
+    network.summarise(std::cout);
+    std::cout << "\n";
 
     // Hyperparameters
     LearningRateList lRList = {0.01, 0.01, 0.01};
