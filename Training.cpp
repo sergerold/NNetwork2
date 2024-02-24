@@ -476,6 +476,7 @@ void train(NNetwork& network, ExampleData& trainingData, const ActFuncList& actF
 
         // Print
 
+        std::cout << "Threads: " << Eigen::nbThreads() << std::endl;
         std::cout << "Epoch: " << epoch << std::endl;
         std::cout << "Time: " << std::chrono::duration <double, std::milli> (end - start).count() << " ms" << std::endl;
         std::cout << " -> Training Data (" << trainingData.size() << " items):\n";
