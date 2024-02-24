@@ -28,7 +28,7 @@ Basic data functionality including:
 
 Creating a neural network:
 
-```
+```c++
     ClassList classes = getClasses(); // gets a list of classes from DataSpecs.h
     size_t inputSz = getInputSz(); // gets the number of inputs from DataSpecs.h
 
@@ -41,7 +41,7 @@ Creating a neural network:
 
 Loading and normalising data
 
-```
+```c++
     ExampleData trainingData = loadTrainingDataFromFile("../TrainingData/mnist_train_3.csv"); // load training data
     normaliseTrainingData(trainingData, DataNormalisationMethod::Z_SCORE); // normalise training data using Z_SCORE
 
@@ -51,7 +51,7 @@ Loading and normalising data
 
 Hyperparameters:
 
-```
+```c++
     // Hyperparameters
     LearningRateList lRList = {0.01, 0.01, 0.01}; // each hidden layer and output layer can have a learning rate
     ActFuncList actFuncs = ActFuncList{ ActFunc::RELU, ActFunc::RELU,  ActFunc::SOFTMAX }; // each layer can have its own activation function
@@ -65,7 +65,7 @@ Hyperparameters:
 
 Training and saving the network:
 
-```
+```c++
     train(network, trainingData, actFuncs, lossFunc, lRList, momentum, initMethod, epochs, batchSz, testData, dropOutRate);
 
     std::ofstream fOut ("../model.dat");
