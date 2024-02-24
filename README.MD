@@ -72,4 +72,7 @@ Training and saving the network:
     serialise(fOut, network, actFuncs); // save the network
 ```
 
+## Performance
+
+On my laptop, I can get MNIST to train to 98.5% within 10 epochs in ~ 30 seconds
 
